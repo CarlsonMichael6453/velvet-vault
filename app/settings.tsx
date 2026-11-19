@@ -34,7 +34,8 @@ export default function SettingsScreen() {
         <Text key={line} style={[styles.line, { color: theme.colors.text }]}>{line}</Text>
       ))}
       <Muted>Velvet Vault is simulated gambling for ages 18 and older. It is the sort of game stores rate 17+ for frequent simulated gambling. Coins have no cash value.</Muted>
-      <View style={{ marginTop: 12 }}>
+      <View style={{ marginTop: 12, gap: 8 }}>
+        <GhostButton label="Send feedback" onPress={() => router.push('/feedback')} />
         <GhostButton label="Read the full notice" onPress={() => router.push('/legal')} />
       </View>
       <Text style={[styles.section, { color: theme.colors.gold }]}>This device</Text>

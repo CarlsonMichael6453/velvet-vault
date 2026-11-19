@@ -9,6 +9,7 @@
     "expo": "~58.0.26",
     "expo-audio": "~58.0.12",
     "expo-constants": "~58.0.16",
+    "expo-device": "~58.0.5",
     "expo-font": "~58.0.12",
     "expo-haptics": "~58.0.8",
     "expo-linear-gradient": "~58.0.4",
@@ -16,6 +17,7 @@
     "expo-router": "~58.0.32",
     "expo-splash-screen": "~58.0.14",
     "expo-status-bar": "~58.0.5",
+    "expo-store-review": "~58.0.3",
     "expo-symbols": "~58.0.5",
     "expo-web-browser": "~58.1.0",
     "react": "19.3.0",
@@ -41,7 +43,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web --port 43123",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/test-economy.ts",
+    "test": "tsx scripts/test-economy.ts && tsx scripts/test-review.ts",
     "audio": "node scripts/synth-audio.mjs"
   },
   "private": true

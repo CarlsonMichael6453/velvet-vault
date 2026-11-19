@@ -59,6 +59,8 @@ type Store = {
   applyTheme: (themeId: string) => Result;
   grantProduct: (productId: string) => Result;
   resetProgress: () => void;
+  bumpSession: () => void;
+  markReviewPrompted: (day: string) => void;
 };
 
 let noticeSerial = 1;
@@ -133,7 +135,13 @@ export const useGame = create<Store>()(
           if (!product) return { ok: false, save: get().save, notices: [], error: 'Unknown product.' };
           return commit(grantProduct(get().save, product));
         },
-        resetProgress: () => set({ save: resetSave(), notices: [] }),
+        resetProgress: () =>
+          set((state) => ({
+            save: { ...resetSave(), sessions: state.save.sessions, reviewPromptOn: state.save.reviewPromptOn },
+            notices: [],
+          })),
+        bumpSession: () => set((state) => ({ save: { ...state.save, sessions: state.save.sessions + 1 } })),
+        markReviewPrompted: (day) => set((state) => ({ save: { ...state.save, reviewPromptOn: day } })),
       };
     },
     {

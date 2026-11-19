@@ -21,6 +21,8 @@ export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
+let sessionNoted = false;
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     Cinzel_700Bold,
@@ -48,6 +50,12 @@ export default function RootLayout() {
     if (loaded && hydrated) void SplashScreen.hideAsync();
   }, [loaded, hydrated]);
 
+  useEffect(() => {
+    if (!hydrated || sessionNoted) return;
+    sessionNoted = true;
+    useGame.getState().bumpSession();
+  }, [hydrated]);
+
   if (!loaded || !hydrated) return <BootScreen />;
 
   return (
@@ -64,6 +72,7 @@ export default function RootLayout() {
               <Stack.Screen name="wheel" />
               <Stack.Screen name="settings" />
               <Stack.Screen name="legal" />
+              <Stack.Screen name="feedback" />
             </Stack>
             <AgeGate />
             <AudioBridge />

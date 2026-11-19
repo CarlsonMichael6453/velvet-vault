@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.michaelcarlson.velvetvault",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["mailto"]
       }
     },
     "android": {

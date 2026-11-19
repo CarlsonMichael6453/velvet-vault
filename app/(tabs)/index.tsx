@@ -7,6 +7,7 @@ import { DAILY_REWARDS, HOURLY_COINS, levelFromXp, levelTitle } from '@/src/data
 import { MACHINES } from '@/src/games/slots/machines';
 import { formatClock, formatCoins, todayKey } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
+import { considerStoreReview } from '@/src/services/reviewPrompt';
 import { useGame } from '@/src/store/gameStore';
 import { dailyAvailable, hourlyRemaining, streakIfClaimed, vipFor } from '@/src/store/logic';
 import { useTheme } from '@/src/theme/useTheme';
@@ -31,16 +32,23 @@ export default function LobbyScreen() {
 
   function claim(kind: 'daily' | 'hourly') {
     const result = kind === 'daily' ? useGame.getState().claimDaily() : useGame.getState().claimHourly();
-    if (result.ok) void playSfx('coin');
+    if (!result.ok) return;
+    void playSfx('coin');
+    if (kind === 'daily' && result.save.streak > 0 && result.save.streak % 7 === 0) void considerStoreReview();
   }
 
   return (
     <Screen scroll>
       <View style={styles.header}>
         <Wordmark />
-        <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
-          <Text style={{ color: theme.colors.gold, fontFamily: 'Outfit_600SemiBold' }}>Settings</Text>
-        </Pressable>
+        <View style={{ alignItems: 'flex-end', gap: 6 }}>
+          <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
+            <Text style={{ color: theme.colors.gold, fontFamily: 'Outfit_600SemiBold' }}>Settings</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/feedback')} hitSlop={8}>
+            <Text style={{ color: theme.colors.muted, fontFamily: 'Outfit_500Medium', fontSize: 13 }}>Feedback</Text>
+          </Pressable>
+        </View>
       </View>
 
       <Card style={{ marginTop: 14 }}>

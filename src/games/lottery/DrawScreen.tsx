@@ -1,15 +1,16 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
 
 import { Card, CoinPill, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
 import { BigWin } from '@/src/components/fx';
-import { DRAW_TICKET_PRICE, JACKPOT_SEED } from '@/src/data/economy';
+import { DRAW_TICKET_PRICE, JACKPOT_SEED, levelFromXp } from '@/src/data/economy';
 import { MAIN_PICKS, MAIN_POOL, STAR_POOL, drawResult, quickPick, type Ticket } from '@/src/games/lottery/draw';
 import { celebrationFor } from '@/src/games/slots/engine';
 import { formatCoins } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
+import { considerStoreReview } from '@/src/services/reviewPrompt';
 import { buzz } from '@/src/services/haptics';
 import { useGame } from '@/src/store/gameStore';
 import type { PendingDraw } from '@/src/store/types';
@@ -28,6 +29,7 @@ export function DrawScreen() {
   const [active, setActive] = useState<PendingDraw | null>(null);
   const [done, setDone] = useState(false);
   const [celebration, setCelebration] = useState<{ tier: 'big' | 'mega' | 'ultra' | 'jackpot'; amount: number } | null>(null);
+  const levelBeforeDraw = useRef(1);
 
   const cost = quantity * DRAW_TICKET_PRICE;
   const ready = main.length === MAIN_PICKS && star !== null;
@@ -51,6 +53,9 @@ export function DrawScreen() {
         buzz('big');
         const tier = active.jackpotWon ? 'jackpot' : celebrationFor(result.amount ?? 0, cost);
         if (tier) setCelebration({ tier, amount: result.amount ?? 0 });
+        else if (levelFromXp(useGame.getState().save.xp).level > levelBeforeDraw.current) void considerStoreReview();
+      } else if (levelFromXp(useGame.getState().save.xp).level > levelBeforeDraw.current) {
+        void considerStoreReview();
       }
       return;
     }
@@ -71,6 +76,7 @@ export function DrawScreen() {
   }
 
   function play(tickets: Ticket[]) {
+    levelBeforeDraw.current = levelFromXp(useGame.getState().save.xp).level;
     const draw = drawResult();
     const result = useGame.getState().buyDraw(tickets, draw);
     if (!result.ok || !result.save.pendingDraw) {
@@ -183,7 +189,7 @@ export function DrawScreen() {
       )}
       <LegalLine />
       <GhostButton label="Back to the floor" onPress={() => router.back()} />
-      {celebration ? <BigWin tier={celebration.tier} amount={celebration.amount} theme={theme} onDone={() => setCelebration(null)} /> : null}
+      {celebration ? <BigWin tier={celebration.tier} amount={celebration.amount} theme={theme} onDone={() => { setCelebration(null); void considerStoreReview(); }} /> : null}
     </Screen>
   );
 }

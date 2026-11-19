@@ -8,6 +8,8 @@ import { getScratchTicket, presentTicket, SCRATCH_TICKETS, type ScratchPresentat
 import { celebrationFor } from '@/src/games/slots/engine';
 import { formatCoins } from '@/src/lib/format';
 import { playScratch, playSfx } from '@/src/services/audio';
+import { considerStoreReview } from '@/src/services/reviewPrompt';
+import { levelFromXp } from '@/src/data/economy';
 import { buzz } from '@/src/services/haptics';
 import { useGame } from '@/src/store/gameStore';
 import { useTheme } from '@/src/theme/useTheme';
@@ -75,6 +77,7 @@ export function ScratchPlay() {
   const [error, setError] = useState<string | null>(null);
   const [held, setHeld] = useState<ScratchPresentation | null>(null);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
+  const levelBeforeBuy = useRef(1);
 
   const owned = pending && ticket && pending.ticketId === ticket.id ? pending : null;
   useEffect(() => {
@@ -118,6 +121,7 @@ export function ScratchPlay() {
       return;
     }
     if (owned) return;
+    levelBeforeBuy.current = levelFromXp(useGame.getState().save.xp).level;
     const seed = Math.floor(Math.random() * 1_000_000_000);
     const face = presentTicket(ticket, seed);
     const result = useGame.getState().buyScratch(ticket.id, ticket.price, seed, face.prize);
@@ -141,6 +145,9 @@ export function ScratchPlay() {
       buzz('win');
       const tier = celebrationFor(result.amount, ticket.price);
       if (tier) setCelebration({ tier, amount: result.amount });
+      else if (levelFromXp(useGame.getState().save.xp).level > levelBeforeBuy.current) void considerStoreReview();
+    } else if (levelFromXp(useGame.getState().save.xp).level > levelBeforeBuy.current) {
+      void considerStoreReview();
     }
   }
 
@@ -233,7 +240,7 @@ export function ScratchPlay() {
         ) : null}
         <LegalLine />
       </View>
-      {celebration ? <BigWin tier={celebration.tier} amount={celebration.amount} theme={theme} onDone={() => setCelebration(null)} /> : null}
+      {celebration ? <BigWin tier={celebration.tier} amount={celebration.amount} theme={theme} onDone={() => { setCelebration(null); void considerStoreReview(); }} /> : null}
     </Screen>
   );
 }

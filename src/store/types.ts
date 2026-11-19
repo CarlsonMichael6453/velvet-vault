@@ -88,6 +88,10 @@ export type SaveState = {
   pendingScratch: PendingScratch | null;
   pendingDraw: PendingDraw | null;
   pendingWheel: PendingWheel | null;
+  /** How many times this install has launched. 1 is the first session. */
+  sessions: number;
+  /** Day the native store review was last requested, or null. */
+  reviewPromptOn: string | null;
 };
 
 export type Notice = { title: string; detail: string };

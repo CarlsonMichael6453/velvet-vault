@@ -27,7 +27,9 @@ The first launch asks you to confirm you are 18 or older, then drops 8,000 Velve
 - **Retention.** Daily streak bonus, hourly coin tray, once-a-day prize wheel, missions, achievements, XP levels that unlock machines and raise the max bet, and VIP tiers that sweeten the free coins.
 - **Themes.** Velvet Classic, Midnight Lounge, and Sunset Strip are free. Neon Vegas, Pharaoh’s Gold, Dragon Emperor, Deep Sea Treasure, Cosmic Galaxy, and Diamond Royale are premium. Premium rooms add denser particles, moving light, and their own music. Buy them with coins or through the mock store.
 - **Shop.** Tiered coin packs. The largest pack is marked Best value. Purchases go through a small `IAPService` interface. Development uses `MockIAPService` (no charge). Set `EXPO_PUBLIC_IAP_PROVIDER=revenuecat` later and implement `RevenueCatIAPService` in `src/services/iap.ts`.
-- **Settings.** Sound, music, haptics, reduced motion, responsible-play copy, and a local progress reset.
+- **Settings.** Sound, music, haptics, reduced motion, responsible-play copy, a feedback form, and a local progress reset.
+- **Feedback.** A star rating, a note, an optional email, and a bug-report flag. Send opens a prefilled email to the address in `FEEDBACK_EMAIL` inside `src/config.ts`.
+- **Store review.** After a big win, a level-up, or a finished 7-day streak, and never on the first session or more than once every 90 days.
 - **Persistence.** Wallet, level, themes, streak, jackpot, and unfinished tickets are saved on device with AsyncStorage (localStorage on web).
 
 House copy is in the age gate, the shop, settings, and the House notice: coins have no cash value, this is simulated gambling, 18+ to play.

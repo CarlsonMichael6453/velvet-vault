@@ -57,6 +57,8 @@ export function freshSave(): SaveState {
     pendingScratch: null,
     pendingDraw: null,
     pendingWheel: null,
+    sessions: 0,
+    reviewPromptOn: null,
   };
 }
 
@@ -73,6 +75,8 @@ export function hydrateSave(raw: Partial<SaveState> | undefined): SaveState {
     achievements: raw.achievements ?? {},
     ownedThemes: raw.ownedThemes?.length ? raw.ownedThemes : base.ownedThemes,
     activeTheme: raw.activeTheme || base.activeTheme,
+    sessions: typeof raw.sessions === 'number' && raw.sessions >= 0 ? raw.sessions : base.sessions,
+    reviewPromptOn: typeof raw.reviewPromptOn === 'string' ? raw.reviewPromptOn : null,
   };
 }
 

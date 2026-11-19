@@ -11,6 +11,7 @@ import { levelFromXp, maxBetForLevel, nextBetUnlock } from '@/src/data/economy';
 import { formatCoins } from '@/src/lib/format';
 import { mulberry32 } from '@/src/lib/random';
 import { playSfx } from '@/src/services/audio';
+import { considerStoreReview } from '@/src/services/reviewPrompt';
 import { buzz } from '@/src/services/haptics';
 import { useGame } from '@/src/store/gameStore';
 import { useTheme } from '@/src/theme/useTheme';
@@ -43,6 +44,7 @@ export function SlotScreen() {
   const betUsed = useRef(0);
   const autoRef = useRef(0);
   const chainTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const levelBeforeSpin = useRef(1);
 
   const options = machine ? betOptions(machine, level.level) : [];
   const bet = options[Math.min(betIndex, Math.max(0, options.length - 1))] ?? 0;
@@ -117,8 +119,12 @@ export function SlotScreen() {
         chainTimer.current = setTimeout(() => spin(), 420);
       }
     };
+    const leveled = levelFromXp(useGame.getState().save.xp).level > levelBeforeSpin.current;
     if (tier) setCelebration({ tier, amount: result.totalWin });
-    else continuePlay();
+    else {
+      if (leveled) void considerStoreReview();
+      continuePlay();
+    }
   }
 
   function onReelStopped(index: number) {
@@ -130,6 +136,7 @@ export function SlotScreen() {
 
   function spin() {
     if (!machine || busy.current || locked) return;
+    levelBeforeSpin.current = levelFromXp(useGame.getState().save.xp).level;
     const active = useGame.getState().save.freeSpin;
     const usingFree = active && active.machineId === machine.id && active.left > 0;
     let spinBet = bet;
@@ -176,6 +183,7 @@ export function SlotScreen() {
   function dismissWin() {
     if (!machine) return;
     setCelebration(null);
+    void considerStoreReview();
     const free = useGame.getState().save.freeSpin;
     if (free && free.machineId === machine.id && free.left > 0) {
       chainTimer.current = setTimeout(() => spin(), 280);
