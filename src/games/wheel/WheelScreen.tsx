@@ -1,10 +1,9 @@
-import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { G, Path, Text as SvgText } from 'react-native-svg';
 
-import { Card, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
+import { Card, Display, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
 import { WHEEL_PRIZES } from '@/src/data/economy';
 import { formatCompact, todayKey } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
@@ -16,7 +15,6 @@ import { useTheme } from '@/src/theme/useTheme';
 const SEGMENT = 360 / WHEEL_PRIZES.length;
 
 export function WheelScreen() {
-  const router = useRouter();
   const theme = useTheme();
   const save = useGame((state) => state.save);
   const reduced = save.settings.reducedMotion;
@@ -25,6 +23,7 @@ export function WheelScreen() {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [wheelSize, setWheelSize] = useState(280);
   const vip = vipFor(save);
   const already = save.lastWheel === todayKey() && !save.pendingWheel;
 
@@ -74,16 +73,18 @@ export function WheelScreen() {
   const colors = [theme.colors.gold, theme.colors.bg2, theme.colors.accent, theme.colors.goldDeep];
 
   return (
-    <Screen bottomInset>
+    <Screen bottomInset back>
       <View style={styles.header}>
         <Display size={26}>Daily wheel</Display>
-        <GhostButton label="Close" onPress={() => router.back()} />
       </View>
       <Muted>One spin each day. {vip.name} multiplies the prize by {vip.multiplier === 1 ? 'nothing extra yet' : `${vip.multiplier}×`}.</Muted>
-      <View style={styles.stage}>
+      <View
+        style={[styles.stage, { height: wheelSize + 24 }]}
+        onLayout={(event) => setWheelSize(Math.max(200, Math.min(300, Math.floor(event.nativeEvent.layout.width - 8))))}
+      >
         <View style={[styles.pointer, { borderTopColor: theme.colors.gold }]} />
         <Animated.View style={wheelStyle}>
-          <Svg width={300} height={300} viewBox="0 0 300 300">
+          <Svg width={wheelSize} height={wheelSize} viewBox="0 0 300 300">
             <G>
               {WHEEL_PRIZES.map((prize, index) => {
                 const start = index * SEGMENT - SEGMENT / 2;
@@ -131,7 +132,7 @@ function wedge(cx: number, cy: number, radius: number, start: number, end: numbe
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  stage: { alignItems: 'center', justifyContent: 'center', marginVertical: 12, height: 330 },
+  stage: { alignItems: 'center', justifyContent: 'center', marginVertical: 12 },
   pointer: {
     position: 'absolute',
     top: 4,
@@ -144,6 +145,6 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
   },
-  hub: { position: 'absolute', width: 54, height: 54, borderRadius: 27, borderWidth: 3 },
+  hub: { position: 'absolute', width: 54, height: 54, borderRadius: 27, borderWidth: 3, top: '50%', left: '50%', marginTop: -27, marginLeft: -27 },
   result: { textAlign: 'center', fontFamily: 'Cinzel_700Bold', fontSize: 22, marginBottom: 8 },
 });

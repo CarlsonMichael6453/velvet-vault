@@ -1,7 +1,6 @@
-import { useRouter } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
 
-import { Display, GhostButton, Screen } from '@/src/components/ui';
+import { Display, Screen } from '@/src/components/ui';
 import { useTheme } from '@/src/theme/useTheme';
 
 const SECTIONS = [
@@ -36,10 +35,9 @@ const SECTIONS = [
 ];
 
 export default function LegalScreen() {
-  const router = useRouter();
   const theme = useTheme();
   return (
-    <Screen scroll bottomInset>
+    <Screen scroll bottomInset back>
       <Display>House notice</Display>
       {SECTIONS.map((section) => (
         <Text key={section.title} style={[styles.block, { color: theme.colors.text }]}>
@@ -47,7 +45,6 @@ export default function LegalScreen() {
           {section.body}
         </Text>
       ))}
-      <GhostButton label="Back" onPress={() => router.back()} />
     </Screen>
   );
 }

@@ -1,5 +1,6 @@
-import { ReactNode, useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { ReactNode, useCallback, useEffect, useRef } from 'react';
+import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,33 +20,105 @@ export function Screen({
   scroll = false,
   padded = true,
   bottomInset = false,
+  back = false,
 }: {
   children: ReactNode;
   scroll?: boolean;
   padded?: boolean;
   bottomInset?: boolean;
+  /** True pops the stack. "lobby" returns to the home tab (Games, Shop, Themes, Club). */
+  back?: boolean | 'lobby';
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const reduced = useGame((state) => state.save.settings.reducedMotion);
+  const router = useRouter();
   const pad = padded ? 16 : 0;
+  const leave = useCallback(() => {
+    if (back === 'lobby' || !router.canGoBack()) router.navigate('/');
+    else router.back();
+  }, [back, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (back !== 'lobby') return undefined;
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.navigate('/');
+        return true;
+      });
+      return () => sub.remove();
+    }, [back, router]),
+  );
+
+  const showEdge = Boolean(back) && (Platform.OS === 'web' || back === 'lobby');
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.bg0 }}>
       <LinearGradient colors={[theme.colors.bg0, theme.colors.bg1, theme.colors.bg2]} style={StyleSheet.absoluteFill} />
       <Orbs theme={theme} reduced={reduced} />
       <Particles theme={theme} reduced={reduced} />
-      {scroll ? (
-        <ScrollView
-          style={{ flex: 1, marginTop: insets.top }}
-          contentContainerStyle={{ padding: pad, paddingBottom: 32 + (bottomInset ? insets.bottom : 0) }}
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={{ flex: 1, marginTop: insets.top, padding: pad, paddingBottom: bottomInset ? insets.bottom : 0 }}>{children}</View>
-      )}
+      <View style={{ flex: 1, paddingTop: insets.top }}>
+        {back ? <BackBar onPress={leave} /> : null}
+        <View style={{ flex: 1 }}>
+          {scroll ? (
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ padding: pad, paddingBottom: 32 + (bottomInset ? insets.bottom : 0) }}
+              showsVerticalScrollIndicator={false}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={{ flex: 1, padding: pad, paddingBottom: bottomInset ? insets.bottom : 0 }}>{children}</View>
+          )}
+          {showEdge ? <EdgeBack onBack={leave} /> : null}
+        </View>
+      </View>
     </View>
+  );
+}
+
+function BackBar({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+      onPress={() => {
+        buzz('tap');
+        void playSfx('tap');
+        onPress();
+      }}
+      hitSlop={{ top: 6, bottom: 6, right: 12 }}
+      style={styles.backBar}
+    >
+      <Text style={[styles.backChevron, { color: theme.colors.gold }]}>‹</Text>
+      <Text style={[styles.backLabel, { color: theme.colors.gold }]}>Back</Text>
+    </Pressable>
+  );
+}
+
+/** Left-edge swipe only. The strip is narrower than the scratch ticket's inset, so a finger on the foil does not pop the screen. */
+function EdgeBack({ onBack }: { onBack: () => void }) {
+  const startX = useRef<number | null>(null);
+  return (
+    <View
+      accessibilityLabel="Swipe back"
+      style={styles.edge}
+      onStartShouldSetResponder={() => true}
+      onMoveShouldSetResponder={() => true}
+      onResponderGrant={(event) => {
+        startX.current = event.nativeEvent.pageX;
+      }}
+      onResponderRelease={(event) => {
+        const start = startX.current;
+        startX.current = null;
+        if (start != null && event.nativeEvent.pageX - start > 56) onBack();
+      }}
+      onResponderTerminate={() => {
+        startX.current = null;
+      }}
+    />
   );
 }
 
@@ -183,6 +256,7 @@ export function NoticeStack() {
   const notices = useGame((state) => state.notices);
   const dismiss = useGame((state) => state.dismissNotice);
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const latest = notices[notices.length - 1]?.id;
   useEffect(() => {
     if (!latest) return;
@@ -191,7 +265,7 @@ export function NoticeStack() {
   }, [dismiss, latest]);
   if (notices.length === 0) return null;
   return (
-    <View pointerEvents="box-none" style={styles.notices}>
+    <View pointerEvents="box-none" style={[styles.notices, { bottom: 72 + insets.bottom }]}>
       {notices.slice(-2).map((notice) => (
         <Pressable key={notice.id} onPress={() => dismiss(notice.id)} style={[styles.notice, { backgroundColor: theme.colors.card, borderColor: theme.colors.gold }]}>
           <Text style={[styles.noticeTitle, { color: theme.colors.gold }]}>{notice.title}</Text>
@@ -220,6 +294,18 @@ export function themeButtonColors(theme: Theme) {
 }
 
 const styles = StyleSheet.create({
+  backBar: {
+    minHeight: 44,
+    paddingLeft: 10,
+    paddingRight: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    zIndex: 6,
+  },
+  backChevron: { fontSize: 34, lineHeight: 36, marginRight: 2, marginTop: -2 },
+  backLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 17 },
+  edge: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 14, zIndex: 4 },
   gold: { borderRadius: 16, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   goldLabel: { fontFamily: 'Outfit_700Bold', fontSize: 16, letterSpacing: 0.4 },
   ghost: { borderWidth: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center' },
@@ -228,7 +314,7 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: 'SpaceMono', fontSize: 13 },
   card: { borderWidth: 1, borderRadius: 18, padding: 14 },
   legal: { fontFamily: 'Outfit_400Regular', fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 8 },
-  notices: { position: 'absolute', left: 16, right: 16, bottom: 76, gap: 8, zIndex: 20 },
+  notices: { position: 'absolute', left: 16, right: 16, gap: 8, zIndex: 20 },
   notice: { borderWidth: 1, borderRadius: 14, padding: 12 },
   noticeTitle: { fontFamily: 'Cinzel_700Bold', fontSize: 14 },
   noticeBody: { fontFamily: 'Outfit_400Regular', fontSize: 13, marginTop: 2 },

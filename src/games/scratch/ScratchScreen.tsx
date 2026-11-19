@@ -16,6 +16,10 @@ import { useTheme } from '@/src/theme/useTheme';
 
 const COLS = 10;
 const ROWS = 14;
+/** One foil cell. The previous brush covered a 3×3 block, about three times this wide. */
+const BRUSH_RADIUS = 0;
+/** Share of the foil a thin stroke must clear before the ticket finishes itself. */
+const REVEAL_AT = 0.34;
 
 export function ScratchCatalog() {
   const router = useRouter();
@@ -23,7 +27,7 @@ export function ScratchCatalog() {
   const coins = useGame((state) => state.save.coins);
   const pending = useGame((state) => state.save.pendingScratch);
   return (
-    <Screen scroll bottomInset>
+    <Screen scroll bottomInset back>
       <View style={styles.header}>
         <Display size={26}>Scratch foils</Display>
         <CoinPill amount={coins} onPress={() => router.push('/shop')} />
@@ -93,8 +97,8 @@ export function ScratchPlay() {
     setMask((current) => {
       const next = current.slice();
       let changed = false;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -BRUSH_RADIUS; dy <= BRUSH_RADIUS; dy++) {
+        for (let dx = -BRUSH_RADIUS; dx <= BRUSH_RADIUS; dx++) {
           const c = col + dx;
           const r = row + dy;
           if (c < 0 || r < 0 || c >= COLS || r >= ROWS) continue;
@@ -107,7 +111,7 @@ export function ScratchPlay() {
       }
       if (!changed) return current;
       const revealed = next.filter(Boolean).length / next.length;
-      if (revealed >= 0.62) return next.map(() => true);
+      if (revealed >= REVEAL_AT) return next.map(() => true);
       return next;
     });
     playScratch();
@@ -159,17 +163,15 @@ export function ScratchPlay() {
 
   if (!ticket) {
     return (
-      <Screen>
+      <Screen back>
         <Display>Ticket missing</Display>
-        <GhostButton label="Back" onPress={() => router.back()} />
       </Screen>
     );
   }
 
   return (
-    <Screen padded={false} bottomInset>
+    <Screen padded={false} bottomInset back>
       <View style={styles.header}>
-        <GhostButton label="Back" onPress={() => router.back()} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.cardTitle, { color: theme.colors.text }]}>{ticket.name}</Text>
           <Text style={[styles.body, { color: theme.colors.muted }]}>{formatCoins(ticket.price)} coins</Text>
@@ -201,7 +203,7 @@ export function ScratchPlay() {
           lastPoint.current = point;
         }}
       >
-        {held ? <TicketFace presentation={held} revealed={revealedRatio > 0.62 || settled} /> : (
+        {held ? <TicketFace presentation={held} revealed={revealedRatio >= REVEAL_AT || settled} /> : (
           <View style={styles.unbought}>
             <Text style={[styles.cardTitle, { color: theme.colors.gold }]}>Sealed</Text>
             <Muted center>Buy the ticket and the result is fixed before you scratch.</Muted>
@@ -274,12 +276,12 @@ function TicketFace({ presentation, revealed }: { presentation: ScratchPresentat
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
   cardTitle: { fontFamily: 'Cinzel_700Bold', fontSize: 18 },
   body: { fontFamily: 'Outfit_400Regular', fontSize: 13, lineHeight: 18 },
   price: { fontFamily: 'SpaceMono', fontSize: 13, marginTop: 4 },
   swatch: { width: 14, height: 48, borderRadius: 8 },
-  ticket: { marginHorizontal: 16, minHeight: 280, borderWidth: 2, borderRadius: 18, overflow: 'hidden' },
+  ticket: { marginLeft: 28, marginRight: 16, minHeight: 280, borderWidth: 2, borderRadius: 18, overflow: 'hidden' },
   unbought: { padding: 24, gap: 8, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', padding: 8 },
   cell: { alignItems: 'center' },

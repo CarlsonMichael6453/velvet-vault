@@ -103,7 +103,7 @@ export function DrawScreen() {
   const balls = active ? [...active.drawnMain.map((value) => ({ value, star: false })), { value: active.drawnStar, star: true }] : [];
 
   return (
-    <Screen scroll bottomInset>
+    <Screen scroll bottomInset back>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Display size={26}>Vault Draw</Display>
@@ -188,7 +188,6 @@ export function DrawScreen() {
         </View>
       )}
       <LegalLine />
-      <GhostButton label="Back to the floor" onPress={() => router.back()} />
       {celebration ? <BigWin tier={celebration.tier} amount={celebration.amount} theme={theme} onDone={() => { setCelebration(null); void considerStoreReview(); }} /> : null}
     </Screen>
   );

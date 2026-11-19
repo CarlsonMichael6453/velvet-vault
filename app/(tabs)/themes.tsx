@@ -29,7 +29,7 @@ export default function ThemesScreen() {
   }
 
   return (
-    <Screen scroll>
+    <Screen scroll back="lobby">
       <Display>Theme atelier</Display>
       <Muted>Three rooms are free. The others are cosmetics: backgrounds, chrome, particles, win light, and music. Buy with coins or a mock purchase.</Muted>
       {message ? <Text style={styles.message}>{message}</Text> : null}

@@ -1,16 +1,14 @@
 import * as Linking from 'expo-linking';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { FEEDBACK_EMAIL } from '@/src/config';
-import { Card, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
+import { Card, Display, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
 import { deviceSnapshot } from '@/src/services/deviceInfo';
 import { feedbackBody, feedbackMailto, feedbackValidation, type FeedbackDraft } from '@/src/services/feedbackMail';
 import { useTheme } from '@/src/theme/useTheme';
 
 export default function FeedbackScreen() {
-  const router = useRouter();
   const theme = useTheme();
   const device = deviceSnapshot();
   const [rating, setRating] = useState(0);
@@ -57,10 +55,9 @@ export default function FeedbackScreen() {
   }
 
   return (
-    <Screen scroll bottomInset>
+    <Screen scroll bottomInset back>
       <View style={styles.header}>
         <Display>Feedback</Display>
-        <GhostButton label="Close" onPress={() => router.back()} />
       </View>
       <Muted>Tell us how the vault feels. This opens your mail app with the note filled in. Nothing is sent until you send that email.</Muted>
 

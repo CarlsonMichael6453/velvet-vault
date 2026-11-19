@@ -18,10 +18,9 @@ export default function SettingsScreen() {
   }
 
   return (
-    <Screen scroll bottomInset>
+    <Screen scroll bottomInset back>
       <View style={styles.header}>
         <Display>Settings</Display>
-        <GhostButton label="Close" onPress={() => router.back()} />
       </View>
       <Card>
         <Row label="Sound effects" value={settings.sound} onPress={() => toggle('sound')} />

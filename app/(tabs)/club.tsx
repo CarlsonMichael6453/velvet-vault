@@ -24,7 +24,7 @@ export default function ClubScreen() {
   const missions = save.missions.date === today ? save.missions : { date: today, progress: {}, claimed: [] };
 
   return (
-    <Screen scroll>
+    <Screen scroll back="lobby">
       <View style={styles.header}>
         <Display>The club</Display>
         <Pressable onPress={() => router.push('/settings')}>

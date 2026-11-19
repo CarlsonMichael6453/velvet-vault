@@ -40,7 +40,7 @@ export default function ShopScreen() {
   }
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} back="lobby">
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       <Display>Coin shop</Display>
       <Muted>Buy Velvet Coins with a simulated App Store purchase. In this build nothing is charged. Coins cannot be cashed out, transferred, or redeemed.</Muted>

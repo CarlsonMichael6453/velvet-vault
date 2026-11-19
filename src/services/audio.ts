@@ -1,4 +1,5 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import { Platform } from 'react-native';
 
 import type { MusicId } from '@/src/theme/themes';
 import { useGame } from '@/src/store/gameStore';
@@ -56,7 +57,7 @@ export async function playSfx(name: SfxName): Promise<void> {
     let player = sfxPlayers.get(name);
     if (!player) {
       player = createAudioPlayer(sfxFiles[name]);
-      player.volume = name === 'scratch' ? 0.35 : 0.8;
+      if (Platform.OS !== 'web') player.volume = name === 'scratch' ? 0.35 : 0.8;
       sfxPlayers.set(name, player);
     }
     await player.seekTo(0);
@@ -84,7 +85,7 @@ export async function syncMusic(track: MusicId, enabled: boolean): Promise<void>
       musicPlayer?.remove();
       musicPlayer = createAudioPlayer(musicFiles[track]);
       musicPlayer.loop = true;
-      musicPlayer.volume = 0.28;
+      if (Platform.OS !== 'web') musicPlayer.volume = 0.28;
       musicTrack = track;
     }
     if (!musicPlayer.playing) musicPlayer.play();

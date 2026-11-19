@@ -60,9 +60,8 @@ export function SlotScreen() {
 
   if (!machine) {
     return (
-      <Screen>
+      <Screen back>
         <Display>Machine missing</Display>
-        <GhostButton label="Back to the floor" onPress={() => router.back()} />
       </Screen>
     );
   }
@@ -200,11 +199,8 @@ export function SlotScreen() {
   const nextUnlock = nextBetUnlock(level.level);
 
   return (
-    <Screen padded={false} bottomInset>
+    <Screen padded={false} bottomInset back>
       <View style={styles.top}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Text style={[styles.back, { color: theme.colors.gold }]}>Back</Text>
-        </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: theme.colors.text }]}>{machine.name}</Text>
           <Text style={[styles.sub, { color: theme.colors.muted }]}>
@@ -371,7 +367,6 @@ function ReelColumn({
 
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
-  back: { fontFamily: 'Outfit_600SemiBold', fontSize: 15 },
   name: { fontFamily: 'Cinzel_700Bold', fontSize: 18 },
   sub: { fontFamily: 'Outfit_400Regular', fontSize: 12 },
   meterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16 },
@@ -379,7 +374,7 @@ const styles = StyleSheet.create({
   meterLabel: { fontFamily: 'Outfit_500Medium', fontSize: 11, letterSpacing: 1 },
   meterValue: { fontFamily: 'SpaceMono', fontSize: 18, marginTop: 2 },
   banner: { textAlign: 'center', fontFamily: 'Outfit_600SemiBold', marginVertical: 8, paddingHorizontal: 16 },
-  cabinet: { marginHorizontal: 16, borderWidth: 2, borderRadius: 18, padding: 8 },
+  cabinet: { marginLeft: 24, marginRight: 16, borderWidth: 2, borderRadius: 18, padding: 8 },
   reels: { flexDirection: 'row', justifyContent: 'center', gap: 4 },
   controls: { paddingHorizontal: 16, gap: 10, marginTop: 12 },
   betRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -15,7 +15,7 @@ export default function GamesScreen() {
   const xp = useGame((state) => state.save.xp);
   const level = levelFromXp(xp);
   return (
-    <Screen scroll>
+    <Screen scroll back="lobby">
       <Display>The floor</Display>
       <Muted>Machines open as you level. Your max bet right now is {formatCoins(maxBetForLevel(level.level))}.</Muted>
       <Text style={[styles.section, { color: theme.colors.gold }]}>Slots</Text>

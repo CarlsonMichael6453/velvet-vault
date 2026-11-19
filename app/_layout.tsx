@@ -63,7 +63,16 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <View style={styles.desktop}>
           <View style={styles.phone}>
-            <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: '#12060c' } }}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'slide_from_right',
+                gestureEnabled: true,
+                fullScreenGestureEnabled: false,
+                gestureResponseDistance: { start: 16 },
+                contentStyle: { backgroundColor: '#12060c' },
+              }}
+            >
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="slots/[id]" />
               <Stack.Screen name="scratch/index" />
