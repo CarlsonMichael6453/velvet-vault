@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "Velvet Vault",
+    "slug": "velvet-vault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "velvetvault",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#12060c",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.michaelcarlson.velvetvault",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.michaelcarlson.velvetvault",
+      "adaptiveIcon": {
+        "backgroundColor": "#1A0A12",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Velvet Vault",
+      "themeColor": "#12060c",
+      "backgroundColor": "#12060c"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#12060c"
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "socialCasino": true,
+      "coinsHaveNoCashValue": true
+    }
+  }
+}
