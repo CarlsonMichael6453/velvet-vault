@@ -74,6 +74,10 @@ export type SaveState = {
   lifetimePurchased: number;
   ownedThemes: string[];
   activeTheme: string;
+  ownedBackgrounds: string[];
+  activeBackground: string;
+  ownedStyles: string[];
+  activeStyle: string;
   settings: Settings;
   lastDaily: string | null;
   streak: number;

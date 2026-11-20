@@ -12,7 +12,8 @@ import { considerStoreReview } from '@/src/services/reviewPrompt';
 import { levelFromXp } from '@/src/data/economy';
 import { buzz } from '@/src/services/haptics';
 import { useGame } from '@/src/store/gameStore';
-import { useTheme } from '@/src/theme/useTheme';
+import type { GameStyle } from '@/src/theme/styles';
+import { useStyle, useTheme } from '@/src/theme/useTheme';
 
 const COLS = 10;
 const ROWS = 14;
@@ -72,6 +73,7 @@ export function ScratchPlay() {
   const ticket = getScratchTicket(String(id));
   const router = useRouter();
   const theme = useTheme();
+  const look = useStyle();
   const coins = useGame((state) => state.save.coins);
   const pending = useGame((state) => state.save.pendingScratch);
   const [mask, setMask] = useState<boolean[]>(() => Array(COLS * ROWS).fill(false));
@@ -173,7 +175,7 @@ export function ScratchPlay() {
     <Screen padded={false} bottomInset back>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.cardTitle, { color: theme.colors.text }]}>{ticket.name}</Text>
+          <Text numberOfLines={2} style={[styles.cardTitle, { color: theme.colors.text, fontFamily: look.displayFont, fontSize: 22 * Math.max(look.displayScale, 0.62) }]}>{ticket.name}</Text>
           <Text style={[styles.body, { color: theme.colors.muted }]}>{formatCoins(ticket.price)} coins</Text>
         </View>
         <CoinPill amount={coins} onPress={() => router.push('/shop')} />
@@ -182,7 +184,7 @@ export function ScratchPlay() {
       {error ? <Text style={[styles.error, { color: theme.colors.danger }]}>{error}</Text> : null}
 
       <View
-        style={[styles.ticket, { borderColor: theme.colors.gold, backgroundColor: theme.colors.card }]}
+        style={[styles.ticket, { borderColor: look.id === 'classic' ? theme.colors.gold : look.accent, backgroundColor: theme.colors.card, borderRadius: Math.max(8, look.frameRadius) }]}
         onLayout={(event) => setBoard({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
         onStartShouldSetResponder={() => !!held && !settled}
         onMoveShouldSetResponder={() => !!held && !settled}
@@ -221,9 +223,20 @@ export function ScratchPlay() {
                     top: Math.floor(index / COLS) * (board.height / ROWS),
                     width: board.width / COLS + 1,
                     height: board.height / ROWS + 1,
-                    backgroundColor: (Math.floor(index / COLS) + (index % COLS)) % 2 === 0 ? theme.colors.foil1 : theme.colors.foil2,
+                    backgroundColor:
+                      look.id === 'classic'
+                        ? (Math.floor(index / COLS) + (index % COLS)) % 2 === 0
+                          ? theme.colors.foil1
+                          : theme.colors.foil2
+                        : (Math.floor(index / COLS) + (index % COLS)) % 2 === 0
+                          ? look.foil[0]
+                          : look.foil[1],
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                />
+                >
+                  <FoilMark mark={look.foilMark} index={index} />
+                </View>
               ),
             )
           : null}
@@ -244,6 +257,25 @@ export function ScratchPlay() {
       </View>
       {celebration ? <BigWin tier={celebration.tier} amount={celebration.amount} theme={theme} onDone={() => { setCelebration(null); void considerStoreReview(); }} /> : null}
     </Screen>
+  );
+}
+
+function FoilMark({ mark, index }: { mark: GameStyle['foilMark']; index: number }) {
+  if (mark === 'none') return null;
+  if (mark === 'bubble' && index % 3 !== 0) return null;
+  if (mark === 'flake' && index % 4 !== 0) return null;
+  if (mark === 'star' && index % 5 !== 0) return null;
+  const round = mark === 'bubble' || mark === 'flake' || mark === 'star';
+  return (
+    <View
+      style={{
+        width: mark === 'pixel' ? 4 : 7,
+        height: mark === 'stripe' ? 2 : mark === 'pixel' ? 4 : 7,
+        borderRadius: round ? 8 : 0,
+        backgroundColor: 'rgba(255,255,255,0.7)',
+        transform: mark === 'stripe' ? [{ rotate: '40deg' }] : undefined,
+      }}
+    />
   );
 }
 

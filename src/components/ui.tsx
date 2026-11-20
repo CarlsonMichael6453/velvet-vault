@@ -7,12 +7,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CoinIcon, SymbolGlyph, VaultMark, tilePalette } from '@/src/components/art';
 import { Orbs, Particles } from '@/src/components/fx';
+import { BackgroundScene } from '@/src/components/scenes';
+import type { GameStyle } from '@/src/theme/styles';
+import { useBackground, useStyle, useTheme } from '@/src/theme/useTheme';
 import { COIN_DISCLAIMER } from '@/src/content/copy';
 import { formatCoins } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
 import { buzz } from '@/src/services/haptics';
 import { useGame } from '@/src/store/gameStore';
-import { useTheme } from '@/src/theme/useTheme';
 import type { Theme } from '@/src/theme/themes';
 
 export function Screen({
@@ -30,8 +32,11 @@ export function Screen({
   back?: boolean | 'lobby';
 }) {
   const theme = useTheme();
+  const scene = useBackground();
+  const look = useStyle();
   const insets = useSafeAreaInsets();
   const reduced = useGame((state) => state.save.settings.reducedMotion);
+  const scenic = scene.id !== 'hall';
   const router = useRouter();
   const pad = padded ? 16 : 0;
   const leave = useCallback(() => {
@@ -53,11 +58,19 @@ export function Screen({
   const showEdge = Boolean(back) && (Platform.OS === 'web' || back === 'lobby');
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.bg0 }}>
-      <LinearGradient colors={[theme.colors.bg0, theme.colors.bg1, theme.colors.bg2]} style={StyleSheet.absoluteFill} />
-      <Orbs theme={theme} reduced={reduced} />
-      <Particles theme={theme} reduced={reduced} />
-      <View style={{ flex: 1, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.bg0, position: 'relative', overflow: 'hidden' }}>
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 0 }]}>
+        {scenic ? (
+          <BackgroundScene scene={scene} reduced={reduced} />
+        ) : (
+          <>
+            <LinearGradient colors={[theme.colors.bg0, theme.colors.bg1, theme.colors.bg2]} style={StyleSheet.absoluteFill} />
+            <Orbs theme={theme} reduced={reduced} />
+            <Particles theme={theme} reduced={reduced} kind={look.id === 'classic' ? undefined : look.particle} />
+          </>
+        )}
+      </View>
+      <View style={{ flex: 1, paddingTop: insets.top, zIndex: 2, position: 'relative' }}>
         {back ? <BackBar onPress={leave} /> : null}
         <View style={{ flex: 1 }}>
           {scroll ? (
@@ -136,7 +149,9 @@ export function GoldButton({
   compact?: boolean;
 }) {
   const theme = useTheme();
+  const look = useStyle();
   const scale = useSharedValue(1);
+  const buttonColors = look.id === 'classic' ? ([theme.colors.gold, theme.colors.goldDeep] as const) : ([look.buttonFrom, look.buttonTo] as const);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Pressable
@@ -156,13 +171,14 @@ export function GoldButton({
     >
       <Animated.View style={[style, disabled && { opacity: 0.45 }]}>
         <LinearGradient
-          colors={[theme.colors.gold, theme.colors.goldDeep]}
+          colors={buttonColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.gold, compact && { paddingVertical: 10, borderRadius: 12 }]}
+          style={[styles.gold, { borderRadius: look.buttonRadius }, compact && { paddingVertical: 10 }]}
         >
+          {look.gloss ? <View style={styles.gloss} /> : null}
           {icon}
-          <Text style={[styles.goldLabel, { color: theme.colors.ink }]}>{label}</Text>
+          <Text style={[styles.goldLabel, { color: look.id === 'classic' ? theme.colors.ink : look.symbolInk, fontFamily: look.displayFont, fontSize: 16 * Math.max(look.displayScale, 0.72) }]}>{label}</Text>
         </LinearGradient>
       </Animated.View>
     </Pressable>
@@ -171,6 +187,7 @@ export function GoldButton({
 
 export function GhostButton({ label, onPress, color }: { label: string; onPress: () => void; color?: string }) {
   const theme = useTheme();
+  const look = useStyle();
   return (
     <Pressable
       accessibilityRole="button"
@@ -179,9 +196,9 @@ export function GhostButton({ label, onPress, color }: { label: string; onPress:
         void playSfx('tap');
         onPress();
       }}
-      style={[styles.ghost, { borderColor: theme.colors.cardBorder }]}
+      style={[styles.ghost, { borderColor: look.id === 'classic' ? theme.colors.cardBorder : look.accent, borderRadius: look.buttonRadius }]}
     >
-      <Text style={[styles.ghostLabel, { color: color ?? theme.colors.text }]}>{label}</Text>
+      <Text style={[styles.ghostLabel, { color: color ?? theme.colors.text, fontFamily: look.displayFont, fontSize: 15 * Math.max(look.displayScale, 0.72) }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -198,18 +215,46 @@ export function CoinPill({ amount, onPress }: { amount: number; onPress?: () => 
 
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const theme = useTheme();
-  return <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.cardBorder }, style]}>{children}</View>;
+  const look = useStyle();
+  const scenic = useBackground().id !== 'hall';
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: scenic ? opaqueCard(theme.colors.card) : theme.colors.card,
+          borderColor: theme.colors.cardBorder,
+          borderRadius: Math.max(8, look.frameRadius),
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+function opaqueCard(color: string): string {
+  const match = color.match(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (!match) return color;
+  return `rgba(${match[1]}, ${match[2]}, ${match[3]}, 0.96)`;
 }
 
 export function Display({ children, size = 28 }: { children: ReactNode; size?: number }) {
   const theme = useTheme();
-  return <Text style={{ color: theme.colors.text, fontFamily: 'Cinzel_700Bold', fontSize: size }}>{children}</Text>;
+  const look = useStyle();
+  return (
+    <Text style={{ color: theme.colors.text, fontFamily: look.displayFont, fontSize: size * look.displayScale, lineHeight: size * look.displayScale * 1.25 }}>
+      {children}
+    </Text>
+  );
 }
 
 export function Muted({ children, center }: { children: ReactNode; center?: boolean }) {
   const theme = useTheme();
+  const look = useStyle();
   return (
-    <Text style={{ color: theme.colors.muted, fontFamily: 'Outfit_400Regular', fontSize: 14, lineHeight: 20, textAlign: center ? 'center' : 'left' }}>
+    <Text style={{ color: theme.colors.muted, fontFamily: look.displayScale < 0.7 ? look.displayFont : 'Outfit_400Regular', fontSize: 14 * Math.max(look.displayScale, 0.72), lineHeight: 20, textAlign: center ? 'center' : 'left' }}>
       {children}
     </Text>
   );
@@ -225,28 +270,44 @@ export function SymbolTile({
   size,
   hot,
   dim,
+  look,
 }: {
   icon: string;
   size: number;
   hot?: boolean;
   dim?: boolean;
+  look?: GameStyle;
 }) {
   const theme = useTheme();
-  const palette = tilePalette(icon, theme);
+  const equipped = useStyle();
+  const style = look ?? equipped;
+  const classic = style.id === 'classic';
+  const palette = classic ? tilePalette(icon, theme) : { from: style.symbolFrom, to: style.symbolTo, ink: style.symbolInk, edge: style.accent };
   return (
     <View style={{ width: size, height: size, padding: 3, opacity: dim ? 0.35 : 1 }}>
       <LinearGradient
         colors={[palette.from, palette.to]}
         style={{
           flex: 1,
-          borderRadius: size * 0.18,
+          borderRadius: size * style.plateRadius,
           alignItems: 'center',
           justifyContent: 'center',
-          borderWidth: hot ? 2 : 1,
+          borderWidth: hot ? style.plateBorder + 1 : style.plateBorder,
           borderColor: hot ? theme.colors.gold : palette.edge,
+          overflow: 'hidden',
         }}
       >
-        <SymbolGlyph name={icon} size={size * 0.62} color={palette.ink} accent={theme.colors.gold} />
+        <SymbolGlyph name={icon} size={size * 0.62} color={palette.ink} accent={classic ? theme.colors.gold : style.accent} />
+        {style.gloss ? (
+          <View
+            pointerEvents="none"
+            style={{ position: 'absolute', top: size * 0.08, left: size * 0.16, width: size * 0.34, height: size * 0.14, borderRadius: size, backgroundColor: 'rgba(255,255,255,0.5)' }}
+          />
+        ) : null}
+        {style.frost ? (
+          <View pointerEvents="none" style={{ position: 'absolute', top: 3, right: 4, width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.9)' }} />
+        ) : null}
+        {style.pixel ? <View pointerEvents="none" style={{ position: 'absolute', left: 2, bottom: 2, width: 5, height: 5, backgroundColor: style.accent }} /> : null}
       </LinearGradient>
     </View>
   );
@@ -306,7 +367,8 @@ const styles = StyleSheet.create({
   backChevron: { fontSize: 34, lineHeight: 36, marginRight: 2, marginTop: -2 },
   backLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 17 },
   edge: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 14, zIndex: 4 },
-  gold: { borderRadius: 16, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  gold: { borderRadius: 16, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, overflow: 'hidden' },
+  gloss: { position: 'absolute', top: 4, left: 16, right: 16, height: 7, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.45)' },
   goldLabel: { fontFamily: 'Outfit_700Bold', fontSize: 16, letterSpacing: 0.4 },
   ghost: { borderWidth: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center' },
   ghostLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 15 },

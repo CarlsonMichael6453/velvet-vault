@@ -2,6 +2,7 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 import { Platform } from 'react-native';
 
 import type { MusicId } from '@/src/theme/themes';
+import { getStyle } from '@/src/theme/styles';
 import { useGame } from '@/src/store/gameStore';
 
 const sfxFiles = {
@@ -50,15 +51,23 @@ async function ensureAudio(): Promise<void> {
   audioReady = true;
 }
 
+function flavored(name: SfxName): SfxName {
+  const style = getStyle(useGame.getState().save.activeStyle);
+  if (name === 'win' || name === 'bigwin' || name === 'megawin') return style.winCue;
+  if (name === 'spin') return style.spinCue;
+  return name;
+}
+
 export async function playSfx(name: SfxName): Promise<void> {
+  const cue = flavored(name);
   if (!useGame.getState().save.settings.sound) return;
   try {
     await ensureAudio();
-    let player = sfxPlayers.get(name);
+    let player = sfxPlayers.get(cue);
     if (!player) {
-      player = createAudioPlayer(sfxFiles[name]);
-      if (Platform.OS !== 'web') player.volume = name === 'scratch' ? 0.35 : 0.8;
-      sfxPlayers.set(name, player);
+      player = createAudioPlayer(sfxFiles[cue]);
+      if (Platform.OS !== 'web') player.volume = cue === 'scratch' ? 0.35 : 0.8;
+      sfxPlayers.set(cue, player);
     }
     await player.seekTo(0);
     player.play();

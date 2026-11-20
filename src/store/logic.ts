@@ -43,6 +43,10 @@ export function freshSave(): SaveState {
     lifetimePurchased: 0,
     ownedThemes: ['velvet', 'midnight', 'sunset'],
     activeTheme: 'velvet',
+    ownedBackgrounds: ['hall', 'cabin', 'beach'],
+    activeBackground: 'hall',
+    ownedStyles: ['classic', 'bubbly', 'winter'],
+    activeStyle: 'classic',
     settings: { sound: true, music: true, haptics: true, reducedMotion: false },
     lastDaily: null,
     streak: 0,
@@ -75,6 +79,10 @@ export function hydrateSave(raw: Partial<SaveState> | undefined): SaveState {
     achievements: raw.achievements ?? {},
     ownedThemes: raw.ownedThemes?.length ? raw.ownedThemes : base.ownedThemes,
     activeTheme: raw.activeTheme || base.activeTheme,
+    ownedBackgrounds: raw.ownedBackgrounds?.length ? raw.ownedBackgrounds : base.ownedBackgrounds,
+    activeBackground: raw.activeBackground || base.activeBackground,
+    ownedStyles: raw.ownedStyles?.length ? raw.ownedStyles : base.ownedStyles,
+    activeStyle: raw.activeStyle || base.activeStyle,
     sessions: typeof raw.sessions === 'number' && raw.sessions >= 0 ? raw.sessions : base.sessions,
     reviewPromptOn: typeof raw.reviewPromptOn === 'string' ? raw.reviewPromptOn : null,
   };
@@ -412,8 +420,88 @@ export function applyTheme(save: SaveState, themeId: string): Result {
   return { ok: true, save: { ...save, activeTheme: themeId }, notices: [] };
 }
 
+export type CosmeticOffer = {
+  id: string;
+  name: string;
+  coinPrice: number;
+  levelRequired: number;
+  iapProductId?: string;
+};
+
+function cosmeticUnlocked(save: SaveState, owned: string[], item: CosmeticOffer): boolean {
+  if (owned.includes(item.id)) return true;
+  if (item.coinPrice === 0 && item.levelRequired === 0 && !item.iapProductId) return true;
+  if (item.levelRequired > 0 && item.coinPrice === 0 && !item.iapProductId && levelFromXp(save.xp).level >= item.levelRequired) return true;
+  return false;
+}
+
+function buyCosmetic(
+  save: SaveState,
+  item: CosmeticOffer,
+  owned: string[],
+  assign: (nextOwned: string[]) => SaveState,
+  noun: string,
+): Result {
+  if (owned.includes(item.id)) return fail(save, `You already own this ${noun}.`);
+  if (item.coinPrice <= 0) {
+    return fail(save, item.levelRequired > 0 ? `Reach level ${item.levelRequired} to unlock this ${noun}.` : `This ${noun} is in the mock store.`);
+  }
+  if (save.coins < item.coinPrice) return fail(save, `Not enough coins for that ${noun}.`);
+  const next = assign([...owned, item.id]);
+  return finalize(save, { ...next, coins: save.coins - item.coinPrice }, [
+    { title: `${item.name} unlocked`, detail: 'Cosmetic only. The coins do not become cash.' },
+  ]);
+}
+
+function equipCosmetic(save: SaveState, item: CosmeticOffer, owned: string[], assign: (nextOwned: string[]) => SaveState, noun: string): Result {
+  if (!cosmeticUnlocked(save, owned, item)) {
+    if (item.levelRequired > 0 && levelFromXp(save.xp).level < item.levelRequired) {
+      return fail(save, `Reach level ${item.levelRequired} for this ${noun}.`);
+    }
+    return fail(save, `That ${noun} is still locked.`);
+  }
+  const nextOwned = owned.includes(item.id) ? owned : [...owned, item.id];
+  return { ok: true, save: assign(nextOwned), notices: [] };
+}
+
+export function buyBackgroundWithCoins(save: SaveState, item: CosmeticOffer): Result {
+  return buyCosmetic(
+    save,
+    item,
+    save.ownedBackgrounds,
+    (ownedBackgrounds) => ({ ...save, ownedBackgrounds, activeBackground: item.id }),
+    'backdrop',
+  );
+}
+
+export function applyBackground(save: SaveState, item: CosmeticOffer): Result {
+  return equipCosmetic(
+    save,
+    item,
+    save.ownedBackgrounds,
+    (ownedBackgrounds) => ({ ...save, ownedBackgrounds, activeBackground: item.id }),
+    'backdrop',
+  );
+}
+
+export function buyStyleWithCoins(save: SaveState, item: CosmeticOffer): Result {
+  return buyCosmetic(
+    save,
+    item,
+    save.ownedStyles,
+    (ownedStyles) => ({ ...save, ownedStyles, activeStyle: item.id }),
+    'style',
+  );
+}
+
+export function applyStyle(save: SaveState, item: CosmeticOffer): Result {
+  return equipCosmetic(save, item, save.ownedStyles, (ownedStyles) => ({ ...save, ownedStyles, activeStyle: item.id }), 'style');
+}
+
 export function grantProduct(save: SaveState, product: Product): Result {
   if (product.themeId && save.ownedThemes.includes(product.themeId)) return fail(save, 'You already own this theme.');
+  if (product.backgroundId && save.ownedBackgrounds.includes(product.backgroundId)) return fail(save, 'You already own this backdrop.');
+  if (product.styleId && save.ownedStyles.includes(product.styleId)) return fail(save, 'You already own this style.');
   let next = save;
   const notices: Notice[] = [];
   if (product.coins) {
@@ -429,6 +517,14 @@ export function grantProduct(save: SaveState, product: Product): Result {
       { themesBought: next.stats.themesBought + 1 },
     );
     notices.push({ title: product.title, detail: 'Theme unlocked. Cosmetic only.' });
+  }
+  if (product.backgroundId) {
+    next = { ...next, ownedBackgrounds: [...next.ownedBackgrounds, product.backgroundId], activeBackground: product.backgroundId };
+    notices.push({ title: product.title, detail: 'Backdrop unlocked. Cosmetic only.' });
+  }
+  if (product.styleId) {
+    next = { ...next, ownedStyles: [...next.ownedStyles, product.styleId], activeStyle: product.styleId };
+    notices.push({ title: product.title, detail: 'Game style unlocked. Cosmetic only.' });
   }
   return finalize(save, next, notices, product.coins ?? 0);
 }

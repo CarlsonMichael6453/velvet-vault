@@ -1,7 +1,12 @@
 import 'react-native-gesture-handler';
 
 import { Cinzel_700Bold, Cinzel_900Black } from '@expo-google-fonts/cinzel';
+import { Creepster_400Regular } from '@expo-google-fonts/creepster';
+import { Fredoka_600SemiBold, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
+import { Orbitron_700Bold } from '@expo-google-fonts/orbitron';
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold } from '@expo-google-fonts/outfit';
+import { PressStart2P_400Regular } from '@expo-google-fonts/press-start-2p';
+import { Rye_400Regular } from '@expo-google-fonts/rye';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,6 +20,7 @@ import { AgeGate } from '@/src/components/AgeGate';
 import { NoticeStack } from '@/src/components/ui';
 import { syncMusic } from '@/src/services/audio';
 import { useGame } from '@/src/store/gameStore';
+import { getStyle } from '@/src/theme/styles';
 import { getTheme } from '@/src/theme/themes';
 
 export { ErrorBoundary } from 'expo-router';
@@ -27,10 +33,16 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     Cinzel_700Bold,
     Cinzel_900Black,
+    Creepster_400Regular,
+    Fredoka_600SemiBold,
+    Fredoka_700Bold,
+    Orbitron_700Bold,
     Outfit_400Regular,
     Outfit_500Medium,
     Outfit_600SemiBold,
     Outfit_700Bold,
+    PressStart2P_400Regular,
+    Rye_400Regular,
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const hydrated = useGame((state) => state.hydrated);
@@ -96,11 +108,13 @@ export default function RootLayout() {
 function AudioBridge() {
   const enabled = useGame((state) => state.save.settings.music);
   const themeId = useGame((state) => state.save.activeTheme);
+  const styleId = useGame((state) => state.save.activeStyle);
   const age = useGame((state) => state.save.ageConfirmed);
   useEffect(() => {
     if (!age) return;
-    void syncMusic(getTheme(themeId).music, enabled);
-  }, [enabled, themeId, age]);
+    const track = getStyle(styleId).music ?? getTheme(themeId).music;
+    void syncMusic(track, enabled);
+  }, [enabled, themeId, styleId, age]);
   return null;
 }
 

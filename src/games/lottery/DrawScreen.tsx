@@ -14,11 +14,12 @@ import { considerStoreReview } from '@/src/services/reviewPrompt';
 import { buzz } from '@/src/services/haptics';
 import { useGame } from '@/src/store/gameStore';
 import type { PendingDraw } from '@/src/store/types';
-import { useTheme } from '@/src/theme/useTheme';
+import { useStyle, useTheme } from '@/src/theme/useTheme';
 
 export function DrawScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const look = useStyle();
   const coins = useGame((state) => state.save.coins);
   const jackpot = useGame((state) => state.save.jackpot);
   const [main, setMain] = useState<number[]>([]);
@@ -155,7 +156,7 @@ export function DrawScreen() {
             {Array.from({ length: MAIN_POOL }, (_, index) => index + 1).map((value) => {
               const selected = main.includes(value);
               return (
-                <Pressable key={value} onPress={() => toggleMain(value)} style={[styles.num, { borderColor: selected ? theme.colors.gold : theme.colors.cardBorder, backgroundColor: selected ? theme.colors.gold : theme.colors.card }]}>
+                <Pressable key={value} onPress={() => toggleMain(value)} style={[styles.num, { borderRadius: look.ballRadius, borderColor: selected ? look.accent : theme.colors.cardBorder, backgroundColor: selected ? look.ball : theme.colors.card }]}>
                   <Text style={{ color: selected ? theme.colors.ink : theme.colors.text, fontFamily: 'Outfit_700Bold' }}>{value}</Text>
                 </Pressable>
               );
@@ -195,6 +196,7 @@ export function DrawScreen() {
 
 function DrawBall({ value, star, show, delay }: { value: number; star: boolean; show: boolean; delay: number }) {
   const theme = useTheme();
+  const look = useStyle();
   const scale = useSharedValue(0.4);
   useEffect(() => {
     if (!show) return;
@@ -202,8 +204,8 @@ function DrawBall({ value, star, show, delay }: { value: number; star: boolean; 
   }, [show, delay, scale]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }], opacity: show ? 1 : 0.25 }));
   return (
-    <Animated.View style={[styles.ball, { backgroundColor: star ? theme.colors.accent : theme.colors.gold }, style]}>
-      <Text style={{ color: theme.colors.ink, fontFamily: 'Outfit_700Bold', fontSize: 16 }}>{show ? value : '•'}</Text>
+    <Animated.View style={[styles.ball, { backgroundColor: star ? look.accent : look.id === 'classic' ? theme.colors.gold : look.ball, borderRadius: look.ballRadius }, style]}>
+      <Text style={{ color: look.id === 'classic' ? theme.colors.ink : look.symbolInk, fontFamily: look.displayFont, fontSize: 16 * Math.max(look.displayScale, 0.7) }}>{show ? value : '•'}</Text>
     </Animated.View>
   );
 }

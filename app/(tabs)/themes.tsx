@@ -1,91 +1,297 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { SymbolTile, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
+import { BackgroundScene } from '@/src/components/scenes';
+import { SymbolTile, CoinPill, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
+import { levelFromXp } from '@/src/data/economy';
 import { formatCoins } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
 import { iap } from '@/src/services/iap';
 import { useGame } from '@/src/store/gameStore';
+import { BACKGROUNDS } from '@/src/theme/backgrounds';
+import { STYLES, type GameStyle } from '@/src/theme/styles';
 import { THEMES, type Theme } from '@/src/theme/themes';
+import { useTheme } from '@/src/theme/useTheme';
+
+type Tab = 'rooms' | 'backgrounds' | 'styles';
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'rooms', label: 'Rooms' },
+  { id: 'backgrounds', label: 'Backgrounds' },
+  { id: 'styles', label: 'Styles' },
+];
 
 export default function ThemesScreen() {
+  const router = useRouter();
+  const theme = useTheme();
   const save = useGame((state) => state.save);
+  const reduced = save.settings.reducedMotion;
+  const level = levelFromXp(save.xp).level;
+  const [tab, setTab] = useState<Tab>('rooms');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function buyIap(theme: Theme) {
-    if (!theme.iapProductId) return;
-    setBusy(theme.id);
-    const purchase = await iap.purchase(theme.iapProductId);
+  async function buyIap(productId: string, label: string) {
+    setBusy(productId);
+    const purchase = await iap.purchase(productId);
     setBusy(null);
     if (!purchase.ok) {
       setMessage(purchase.error ?? 'Mock purchase cancelled.');
       return;
     }
-    const granted = useGame.getState().grantProduct(theme.iapProductId);
-    setMessage(granted.ok ? `${theme.name} is yours. No real charge.` : granted.error ?? 'Could not unlock the theme.');
+    const granted = useGame.getState().grantProduct(productId);
+    setMessage(granted.ok ? `${label} is yours. No real charge.` : granted.error ?? 'Could not unlock that.');
     if (granted.ok) void playSfx('unlock');
   }
 
   return (
     <Screen scroll back="lobby">
-      <Display>Theme atelier</Display>
-      <Muted>Three rooms are free. The others are cosmetics: backgrounds, chrome, particles, win light, and music. Buy with coins or a mock purchase.</Muted>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
-      <View style={{ gap: 14, marginTop: 12 }}>
-        {THEMES.map((theme) => {
-          const owned = save.ownedThemes.includes(theme.id);
-          const active = save.activeTheme === theme.id;
+      <Display size={26}>The atelier</Display>
+      <Muted>Rooms recolor the cards. Backgrounds are the scene behind them. Game styles reskin the reels, foil, balls, buttons, type, and sounds.</Muted>
+      <View style={styles.balanceRow}>
+        <CoinPill amount={save.coins} onPress={() => router.push('/shop')} />
+        <Text style={[styles.level, { color: theme.colors.muted }]}>Level {level}</Text>
+      </View>
+      <View style={styles.tabs}>
+        {TABS.map((item) => {
+          const on = tab === item.id;
           return (
-            <View key={theme.id} style={[styles.card, { borderColor: theme.colors.cardBorder }]}>
-              <LinearGradient colors={[theme.colors.bg0, theme.colors.bg1, theme.colors.bg2]} style={styles.preview}>
-                <Text style={[styles.name, { color: theme.colors.gold }]}>{theme.name}</Text>
-                <Text style={[styles.tag, { color: theme.colors.text }]}>{theme.tagline}</Text>
-                <View style={styles.symbols}>
-                  <SymbolTile icon={theme.lavish ? 'crown' : 'cherry'} size={48} />
-                  <SymbolTile icon={theme.particle === 'ember' ? 'dragon' : theme.particle === 'star' ? 'planet' : 'seven'} size={48} />
-                  <SymbolTile icon="wild" size={48} hot={theme.lavish} />
-                </View>
-                {theme.lavish ? <Text style={[styles.lavish, { color: theme.colors.accent2 }]}>Lavish · animated light · unique wins</Text> : <Text style={[styles.lavish, { color: theme.colors.muted }]}>Included</Text>}
-              </LinearGradient>
-              <View style={styles.actions}>
-                {active ? <Text style={styles.active}>In use</Text> : null}
-                {owned && !active ? <GoldButton compact label="Apply" onPress={() => { useGame.getState().applyTheme(theme.id); void playSfx('tap'); }} /> : null}
-                {!owned ? (
-                  <>
-                    <GoldButton
-                      compact
-                      label={`${formatCoins(theme.coinPrice)} coins`}
-                      onPress={() => {
-                        const result = useGame.getState().buyThemeWithCoins(theme.id);
-                        setMessage(result.ok ? `${theme.name} unlocked.` : result.error ?? 'Could not unlock.');
-                        if (result.ok) void playSfx('unlock');
-                      }}
-                    />
-                    {theme.iapPrice ? (
-                      <GhostButton label={busy === theme.id ? '…' : `or ${theme.iapPrice}`} onPress={() => void buyIap(theme)} />
-                    ) : null}
-                  </>
-                ) : null}
-              </View>
-            </View>
+            <Pressable
+              key={item.id}
+              accessibilityRole="button"
+              onPress={() => setTab(item.id)}
+              style={[styles.tab, { borderColor: on ? theme.colors.gold : theme.colors.cardBorder, backgroundColor: on ? theme.colors.card : 'transparent' }]}
+            >
+              <Text style={{ color: on ? theme.colors.gold : theme.colors.text, fontFamily: 'Outfit_700Bold', fontSize: 13 }}>{item.label}</Text>
+            </Pressable>
           );
         })}
       </View>
+      {message ? <Text style={[styles.message, { color: theme.colors.gold }]}>{message}</Text> : null}
+
+      {tab === 'rooms'
+        ? THEMES.map((item) => (
+            <RoomCard
+              key={item.id}
+              item={item}
+              owned={save.ownedThemes.includes(item.id)}
+              active={save.activeTheme === item.id}
+              busy={busy === item.iapProductId}
+              onEquip={() => {
+                const result = useGame.getState().applyTheme(item.id);
+                setMessage(result.ok ? `${item.name} is the room.` : result.error ?? 'Could not apply it.');
+                if (result.ok) void playSfx('tap');
+              }}
+              onBuy={() => {
+                const before = useGame.getState().save.coins;
+                const result = useGame.getState().buyThemeWithCoins(item.id);
+                const after = useGame.getState().save.coins;
+                setMessage(result.ok ? `${item.name} unlocked. ${formatCoins(before - after)} coins.` : result.error ?? 'Could not unlock.');
+                if (result.ok) void playSfx('unlock');
+              }}
+              onIap={() => item.iapProductId && void buyIap(item.iapProductId, item.name)}
+            />
+          ))
+        : null}
+
+      {tab === 'backgrounds'
+        ? BACKGROUNDS.map((item) => (
+            <View key={item.id} style={[styles.card, { borderColor: save.activeBackground === item.id ? theme.colors.gold : theme.colors.cardBorder }]}>
+              <View style={styles.preview}>
+                {item.id === 'hall' ? null : <BackgroundScene scene={item} reduced={reduced} scrim={false} />}
+                {item.id === 'hall' ? (
+                  <View style={[StyleSheetFill, { backgroundColor: theme.colors.bg1 }]} />
+                ) : null}
+                <View style={styles.previewCopy}>
+                  <Text style={styles.previewName}>{item.name}</Text>
+                  <Text style={styles.previewTag}>{item.tagline}</Text>
+                </View>
+              </View>
+              <Actions
+                owned={owns(save.ownedBackgrounds, item, level)}
+                active={save.activeBackground === item.id}
+                coinPrice={item.coinPrice}
+                levelRequired={item.levelRequired}
+                level={level}
+                iapPrice={item.iapPrice}
+                busy={busy === item.iapProductId}
+                onEquip={() => {
+                  const result = useGame.getState().applyBackground(item.id);
+                  setMessage(result.ok ? `${item.name} is behind the room.` : result.error ?? 'Could not apply it.');
+                  if (result.ok) void playSfx('tap');
+                }}
+                onBuy={() => reportBuy(() => useGame.getState().buyBackgroundWithCoins(item.id), item.name, setMessage)}
+                onIap={() => item.iapProductId && void buyIap(item.iapProductId, item.name)}
+              />
+            </View>
+          ))
+        : null}
+
+      {tab === 'styles'
+        ? STYLES.map((item) => (
+            <View key={item.id} style={[styles.card, { borderColor: save.activeStyle === item.id ? theme.colors.gold : theme.colors.cardBorder }]}>
+              <StylePreview item={item} />
+              <Actions
+                owned={owns(save.ownedStyles, item, level)}
+                active={save.activeStyle === item.id}
+                coinPrice={item.coinPrice}
+                levelRequired={item.levelRequired}
+                level={level}
+                iapPrice={item.iapPrice}
+                busy={busy === item.iapProductId}
+                onEquip={() => {
+                  const result = useGame.getState().applyStyle(item.id);
+                  setMessage(result.ok ? `${item.name} is on the games.` : result.error ?? 'Could not apply it.');
+                  if (result.ok) void playSfx('tap');
+                }}
+                onBuy={() => reportBuy(() => useGame.getState().buyStyleWithCoins(item.id), item.name, setMessage)}
+                onIap={() => item.iapProductId && void buyIap(item.iapProductId, item.name)}
+              />
+            </View>
+          ))
+        : null}
       <LegalLine />
     </Screen>
   );
 }
 
+function reportBuy(run: () => { ok: boolean; error?: string }, name: string, setMessage: (value: string) => void) {
+  const before = useGame.getState().save.coins;
+  const result = run();
+  const after = useGame.getState().save.coins;
+  setMessage(result.ok ? `${name} unlocked for ${formatCoins(before - after)} coins.` : result.error ?? 'Could not unlock.');
+  if (result.ok) void playSfx('unlock');
+}
+
+function owns(owned: string[], item: { id: string; coinPrice: number; levelRequired: number; iapProductId?: string }, level: number) {
+  if (owned.includes(item.id)) return true;
+  if (item.coinPrice === 0 && item.levelRequired === 0 && !item.iapProductId) return true;
+  if (item.levelRequired > 0 && item.coinPrice === 0 && !item.iapProductId && level >= item.levelRequired) return true;
+  return false;
+}
+
+function RoomCard({
+  item,
+  owned,
+  active,
+  busy,
+  onEquip,
+  onBuy,
+  onIap,
+}: {
+  item: Theme;
+  owned: boolean;
+  active: boolean;
+  busy: boolean;
+  onEquip: () => void;
+  onBuy: () => void;
+  onIap: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.card, { borderColor: active ? theme.colors.gold : item.colors.cardBorder }]}>
+      <View style={[styles.preview, { backgroundColor: item.colors.bg1 }]}>
+        <Text style={[styles.previewName, { color: item.colors.gold }]}>{item.name}</Text>
+        <Text style={[styles.previewTag, { color: item.colors.text }]}>{item.tagline}</Text>
+        <View style={styles.symbols}>
+          <SymbolTile icon="cherry" size={46} />
+          <SymbolTile icon="seven" size={46} />
+          <SymbolTile icon="crown" size={46} />
+        </View>
+      </View>
+      <Actions
+        owned={owned}
+        active={active}
+        coinPrice={item.coinPrice}
+        levelRequired={0}
+        level={1}
+        iapPrice={item.iapPrice}
+        busy={busy}
+        onEquip={onEquip}
+        onBuy={onBuy}
+        onIap={onIap}
+      />
+    </View>
+  );
+}
+
+function StylePreview({ item }: { item: GameStyle }) {
+  return (
+    <View style={[styles.preview, { backgroundColor: item.reel }]}>
+      <View style={styles.previewCopy}>
+      <Text style={[styles.previewName, { fontFamily: item.displayFont, fontSize: 22 * item.displayScale, color: item.accent }]}>{item.name}</Text>
+      <Text style={[styles.previewTag, { color: '#fbf6ea' }]}>{item.tagline}</Text>
+      <View style={styles.symbols}>
+        <SymbolTile icon="cherry" size={52} look={item} />
+        <SymbolTile icon="seven" size={52} look={item} />
+        <SymbolTile icon="crown" size={52} look={item} />
+        <View style={[styles.sampleBall, { backgroundColor: item.ball, borderRadius: item.ballRadius }]} />
+      </View>
+      </View>
+    </View>
+  );
+}
+
+function Actions({
+  owned,
+  active,
+  coinPrice,
+  levelRequired,
+  level,
+  iapPrice,
+  busy,
+  onEquip,
+  onBuy,
+  onIap,
+}: {
+  owned: boolean;
+  active: boolean;
+  coinPrice: number;
+  levelRequired: number;
+  level: number;
+  iapPrice?: string;
+  busy: boolean;
+  onEquip: () => void;
+  onBuy: () => void;
+  onIap: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={styles.actions}>
+      {active ? <Text style={[styles.active, { color: theme.colors.gold }]}>In use</Text> : null}
+      {owned && !active ? <GoldButton compact label="Equip" onPress={onEquip} /> : null}
+      {!owned && levelRequired > 0 && coinPrice === 0 ? (
+        <Text style={[styles.active, { color: theme.colors.muted }]}>{level >= levelRequired ? 'Ready' : `Reach level ${levelRequired}`}</Text>
+      ) : null}
+      {!owned && coinPrice > 0 ? <GoldButton compact label={`${formatCoins(coinPrice)} coins`} onPress={onBuy} /> : null}
+      {!owned && iapPrice ? <GhostButton label={busy ? '…' : `Mock store ${iapPrice}`} onPress={onIap} /> : null}
+    </View>
+  );
+}
+
+const StyleSheetFill = { position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: 0 };
+
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 18, overflow: 'hidden' },
-  preview: { padding: 16, minHeight: 150 },
-  name: { fontFamily: 'Cinzel_700Bold', fontSize: 22 },
-  tag: { fontFamily: 'Outfit_400Regular', fontSize: 14, marginTop: 4 },
-  symbols: { flexDirection: 'row', marginTop: 10 },
-  lavish: { fontFamily: 'Outfit_600SemiBold', fontSize: 12, marginTop: 8 },
+  balanceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  level: { fontFamily: 'Outfit_600SemiBold', fontSize: 13 },
+  tabs: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  tab: { flex: 1, minHeight: 44, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  message: { fontFamily: 'Outfit_500Medium', marginTop: 10 },
+  card: { borderWidth: 1, borderRadius: 18, overflow: 'hidden', marginTop: 12 },
+  preview: { height: 176, padding: 14, justifyContent: 'flex-end', position: 'relative', overflow: 'hidden' },
+  previewCopy: { zIndex: 2 },
+  previewName: {
+    fontFamily: 'Cinzel_700Bold',
+    fontSize: 22,
+    color: '#fbf6ea',
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowRadius: 8,
+    textShadowOffset: { width: 0, height: 1 },
+  },
+  previewTag: { fontFamily: 'Outfit_400Regular', fontSize: 13, color: '#fbf6ea', marginTop: 4 },
+  symbols: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  sampleBall: { width: 36, height: 36, marginLeft: 8 },
   actions: { padding: 12, gap: 8 },
-  active: { fontFamily: 'Outfit_700Bold', color: '#f0d78c' },
-  message: { fontFamily: 'Outfit_500Medium', color: '#f0d78c', marginTop: 10 },
+  active: { fontFamily: 'Outfit_700Bold' },
 });

@@ -14,13 +14,14 @@ import { playSfx } from '@/src/services/audio';
 import { considerStoreReview } from '@/src/services/reviewPrompt';
 import { buzz } from '@/src/services/haptics';
 import { useGame } from '@/src/store/gameStore';
-import { useTheme } from '@/src/theme/useTheme';
+import { useStyle, useTheme } from '@/src/theme/useTheme';
 
 export function SlotScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const machine = getMachine(String(id));
   const router = useRouter();
   const theme = useTheme();
+  const look = useStyle();
   const coins = useGame((state) => state.save.coins);
   const xp = useGame((state) => state.save.xp);
   const reduced = useGame((state) => state.save.settings.reducedMotion);
@@ -202,7 +203,7 @@ export function SlotScreen() {
     <Screen padded={false} bottomInset back>
       <View style={styles.top}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.name, { color: theme.colors.text }]}>{machine.name}</Text>
+          <Text numberOfLines={2} style={[styles.name, { color: theme.colors.text, fontFamily: look.displayFont, fontSize: 18 * Math.max(look.displayScale, 0.62) }]}>{machine.name}</Text>
           <Text style={[styles.sub, { color: theme.colors.muted }]}>
             {machine.paylines.length} lines · {machine.volatility}
           </Text>
@@ -223,7 +224,18 @@ export function SlotScreen() {
 
       <Text style={[styles.banner, { color: theme.colors.accent2 }]}>{banner}</Text>
 
-      <View style={[styles.cabinet, { borderColor: theme.colors.gold, backgroundColor: theme.colors.reel }]} onLayout={(event) => setFrameW(event.nativeEvent.layout.width)}>
+      <View
+        style={[
+          styles.cabinet,
+          {
+            borderColor: look.id === 'classic' ? theme.colors.gold : look.accent,
+            backgroundColor: look.id === 'classic' ? theme.colors.reel : look.reel,
+            borderRadius: look.frameRadius,
+            borderWidth: look.frameWidth,
+          },
+        ]}
+        onLayout={(event) => setFrameW(event.nativeEvent.layout.width)}
+      >
         <View style={styles.reels}>
           {shown.map((strip, reel) => (
             <ReelColumn

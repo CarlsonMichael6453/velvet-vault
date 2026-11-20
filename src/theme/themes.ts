@@ -1,6 +1,6 @@
 export type ThemeId = 'velvet' | 'midnight' | 'sunset' | 'neon' | 'pharaoh' | 'dragon' | 'ocean' | 'cosmos' | 'diamond';
 
-export type ParticleKind = 'dust' | 'neon' | 'sand' | 'ember' | 'bubble' | 'star' | 'sparkle' | 'warm';
+export type ParticleKind = 'dust' | 'neon' | 'sand' | 'ember' | 'bubble' | 'star' | 'sparkle' | 'warm' | 'snow' | 'petal' | 'bat';
 
 export type WinStyle = 'classic' | 'neon' | 'gold' | 'dragon' | 'ocean' | 'cosmos' | 'diamond';
 

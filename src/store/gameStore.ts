@@ -6,10 +6,16 @@ import { getProduct } from '@/src/data/products';
 import { levelFromXp } from '@/src/data/economy';
 import type { DrawResult, Ticket } from '@/src/games/lottery/draw';
 import { MACHINES } from '@/src/games/slots/machines';
+import { getBackground } from '@/src/theme/backgrounds';
+import { getStyle } from '@/src/theme/styles';
 import { getTheme } from '@/src/theme/themes';
 import {
+  applyBackground,
+  applyStyle,
   applyTheme,
+  buyBackgroundWithCoins,
   buyScratch,
+  buyStyleWithCoins,
   buyThemeWithCoins,
   claimDaily,
   claimHourly,
@@ -57,6 +63,10 @@ type Store = {
   claimMission: (id: string, target: number, reward: number) => Result;
   buyThemeWithCoins: (themeId: string) => Result;
   applyTheme: (themeId: string) => Result;
+  buyBackgroundWithCoins: (backgroundId: string) => Result;
+  applyBackground: (backgroundId: string) => Result;
+  buyStyleWithCoins: (styleId: string) => Result;
+  applyStyle: (styleId: string) => Result;
   grantProduct: (productId: string) => Result;
   resetProgress: () => void;
   bumpSession: () => void;
@@ -126,6 +136,32 @@ export const useGame = create<Store>()(
         },
         applyTheme: (themeId) => {
           const result = applyTheme(get().save, themeId);
+          if (!result.ok) return result;
+          set({ save: result.save });
+          return result;
+        },
+        buyBackgroundWithCoins: (backgroundId) => {
+          const item = getBackground(backgroundId);
+          if (item.id !== backgroundId) return { ok: false, save: get().save, notices: [], error: 'Unknown backdrop.' };
+          return commit(buyBackgroundWithCoins(get().save, item));
+        },
+        applyBackground: (backgroundId) => {
+          const item = getBackground(backgroundId);
+          if (item.id !== backgroundId) return { ok: false, save: get().save, notices: [], error: 'Unknown backdrop.' };
+          const result = applyBackground(get().save, item);
+          if (!result.ok) return result;
+          set({ save: result.save });
+          return result;
+        },
+        buyStyleWithCoins: (styleId) => {
+          const item = getStyle(styleId);
+          if (item.id !== styleId) return { ok: false, save: get().save, notices: [], error: 'Unknown style.' };
+          return commit(buyStyleWithCoins(get().save, item));
+        },
+        applyStyle: (styleId) => {
+          const item = getStyle(styleId);
+          if (item.id !== styleId) return { ok: false, save: get().save, notices: [], error: 'Unknown style.' };
+          const result = applyStyle(get().save, item);
           if (!result.ok) return result;
           set({ save: result.save });
           return result;

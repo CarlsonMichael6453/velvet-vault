@@ -10,12 +10,13 @@ import { playSfx } from '@/src/services/audio';
 import { buzz } from '@/src/services/haptics';
 import { vipFor } from '@/src/store/logic';
 import { useGame } from '@/src/store/gameStore';
-import { useTheme } from '@/src/theme/useTheme';
+import { useStyle, useTheme } from '@/src/theme/useTheme';
 
 const SEGMENT = 360 / WHEEL_PRIZES.length;
 
 export function WheelScreen() {
   const theme = useTheme();
+  const look = useStyle();
   const save = useGame((state) => state.save);
   const reduced = save.settings.reducedMotion;
   const rotation = useSharedValue(0);
@@ -105,7 +106,7 @@ export function WheelScreen() {
             </G>
           </Svg>
         </Animated.View>
-        <Animated.View style={[styles.hub, { backgroundColor: theme.colors.bg0, borderColor: theme.colors.gold }, bulbStyle]} />
+        <Animated.View style={[styles.hub, { backgroundColor: theme.colors.bg0, borderColor: look.accent }, bulbStyle]} />
       </View>
       {result ? <Text style={[styles.result, { color: theme.colors.gold }]}>{result}</Text> : null}
       {error ? <Text style={[styles.result, { color: theme.colors.danger }]}>{error}</Text> : null}

@@ -6,6 +6,8 @@ export type Product = {
   priceString: string;
   coins?: number;
   themeId?: string;
+  backgroundId?: string;
+  styleId?: string;
   badge?: 'Popular' | 'Best value';
 };
 
@@ -105,7 +107,45 @@ export const THEME_PRODUCTS: Product[] = [
   },
 ];
 
-export const PRODUCTS: Product[] = [...COIN_PRODUCTS, ...THEME_PRODUCTS];
+export const BACKDROP_PRODUCTS: Product[] = [
+  {
+    id: 'bg.candy',
+    type: 'non_consumable',
+    title: 'Candy Land',
+    description: 'Unlock the Candy Land backdrop.',
+    priceString: '$2.99',
+    backgroundId: 'candy',
+  },
+  {
+    id: 'bg.palace',
+    type: 'non_consumable',
+    title: 'Golden Palace',
+    description: 'Unlock the Golden Palace backdrop.',
+    priceString: '$4.99',
+    backgroundId: 'palace',
+  },
+];
+
+export const STYLE_PRODUCTS: Product[] = [
+  {
+    id: 'style.neon',
+    type: 'non_consumable',
+    title: 'Neon Cyber',
+    description: 'Unlock the Neon Cyber game style.',
+    priceString: '$2.99',
+    styleId: 'neon',
+  },
+  {
+    id: 'style.royal',
+    type: 'non_consumable',
+    title: 'Royal Gold',
+    description: 'Unlock the Royal Gold game style.',
+    priceString: '$3.99',
+    styleId: 'royal',
+  },
+];
+
+export const PRODUCTS: Product[] = [...COIN_PRODUCTS, ...THEME_PRODUCTS, ...BACKDROP_PRODUCTS, ...STYLE_PRODUCTS];
 
 export function getProduct(id: string): Product | undefined {
   return PRODUCTS.find((product) => product.id === id);

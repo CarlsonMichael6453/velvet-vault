@@ -24,33 +24,37 @@ const PALETTE: Record<Theme['particle'], string[]> = {
   star: ['#ffffff', '#d7cbff', '#ffc2ea'],
   sparkle: ['#ffffff', '#d5f1ff', '#fff4d2'],
   warm: ['#ffb089', '#ffd7a1', '#ff8a5b'],
+  snow: ['#ffffff', '#e7f4ff', '#d5e8f5'],
+  petal: ['#ffd0e0', '#ff8fb8', '#fff0f5'],
+  bat: ['#2a1838', '#6a3a78', '#f08a2a'],
 };
 
-export function Particles({ theme, reduced }: { theme: Theme; reduced: boolean }) {
-  const count = reduced ? 0 : theme.lavish ? 22 : 12;
+export function Particles({ theme, reduced, kind }: { theme: Theme; reduced: boolean; kind?: Theme['particle'] }) {
+  const particle = kind ?? theme.particle;
+  const count = reduced ? 0 : theme.lavish || kind ? 18 : 12;
   const specs = useMemo<Spec[]>(() => {
-    const colors = PALETTE[theme.particle];
+    const colors = PALETTE[particle];
     return Array.from({ length: count }, (_, id) => ({
       id,
       x: Math.random() * 100,
-      size: theme.particle === 'bubble' ? 6 + Math.random() * 10 : 2 + Math.random() * 4,
+      size: particle === 'bubble' || particle === 'snow' ? 5 + Math.random() * 8 : 2 + Math.random() * 4,
       duration: 5000 + Math.random() * 7000,
       delay: Math.random() * 4000,
       color: colors[id % colors.length],
       drift: -20 + Math.random() * 40,
     }));
-  }, [count, theme.particle]);
+  }, [count, particle]);
   if (count === 0) return null;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {specs.map((spec) => (
-        <Mote key={`${theme.id}-${spec.id}`} spec={spec} />
+        <Mote key={`${particle}-${spec.id}`} spec={spec} fall={particle === 'snow' || particle === 'petal' || particle === 'bat'} />
       ))}
     </View>
   );
 }
 
-function Mote({ spec }: { spec: Spec }) {
+function Mote({ spec, fall }: { spec: Spec; fall: boolean }) {
   const progress = useSharedValue(0);
   useEffect(() => {
     progress.value = withDelay(spec.delay, withRepeat(withTiming(1, { duration: spec.duration, easing: Easing.linear }), -1, false));
@@ -58,7 +62,7 @@ function Mote({ spec }: { spec: Spec }) {
   const style = useAnimatedStyle(() => ({
     opacity: Math.sin(progress.value * Math.PI) * 0.85,
     transform: [
-      { translateY: (1 - progress.value) * 280 - 40 },
+      { translateY: (fall ? progress.value : 1 - progress.value) * 320 - 40 },
       { translateX: progress.value * spec.drift },
     ],
   }));

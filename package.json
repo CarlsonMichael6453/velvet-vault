@@ -4,7 +4,12 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/cinzel": "^0.4.2",
+    "@expo-google-fonts/creepster": "^0.4.0",
+    "@expo-google-fonts/fredoka": "^0.4.1",
+    "@expo-google-fonts/orbitron": "^0.4.2",
     "@expo-google-fonts/outfit": "^0.4.3",
+    "@expo-google-fonts/press-start-2p": "^0.4.1",
+    "@expo-google-fonts/rye": "^0.4.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~58.0.26",
     "expo-audio": "~58.0.12",
@@ -44,7 +49,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web --port 43123",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/test-economy.ts && tsx scripts/test-review.ts",
+    "test": "tsx scripts/test-economy.ts && tsx scripts/test-review.ts && tsx scripts/test-cosmetics.ts",
     "audio": "node scripts/synth-audio.mjs"
   },
   "private": true
