@@ -16,6 +16,9 @@ npx expo start
 - iPhone: install Expo Go, scan the QR code, and open the project.
 - Android: same, with Expo Go from the Play Store.
 - Browser: `npm run web` (serves on port 43123).
+- Permanent browser link, once GitHub Pages is enabled: https://carlsonmichael6453.github.io/velvet-vault/
+
+The Pages site is built by `.github/workflows/pages.yml`. It runs `npx expo export -p web` with `EXPO_PAGES_BASE=/velvet-vault`, then copies `dist/index.html` to `dist/404.html` so a client route such as `/slots/cherry-parlor` still loads the app. A `.nojekyll` file keeps the `_expo` assets. Local `npm run web` is unchanged and stays at `/`.
 
 The first launch asks you to confirm you are 18 or older, then drops 8,000 Velvet Coins in the vault. Those coins, and every coin after them, stay in the game.
 
