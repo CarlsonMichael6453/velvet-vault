@@ -84,7 +84,7 @@ This build is a playable Expo Go app, not a store binary. Michael will need:
 8. **Legal review before you list it.** Social casinos are restricted or banned in some US states and other countries. Get a lawyer to confirm where you can publish, what age to gate, and that the coin rules stay non-redeemable. Do not add cash-out, prize redemption, or a sweepstakes coin later without rebuilding the compliance story.
 9. Screenshots, a 1024 icon (already in `assets/images/icon.png`), and a short preview video from a real device.
 
-Prices in the mock shop are placeholders ($1.99 to $49.99, themes $2.99 to $6.99). Change them in `src/data/products.ts` and `src/theme/themes.ts` before you create the store products, and keep the store price and the in-app price string in sync.
+Cash prices live only in `src/data/products.ts` (coin packs $1.99 to $49.99, cosmetics $1.99 to $9.99). Coin costs for the same looks live on the theme, backdrop, and style records. The atelier reads the dollar string from the product, so the button and the mock charge stay the same number.
 
 ## Decisions still open
 

@@ -52,7 +52,7 @@ type Store = {
   recordFreeSpin: () => Result;
   setFreeSpin: (free: SaveState['freeSpin']) => void;
   creditSlotWin: (amount: number, bet: number) => Result;
-  buyScratch: (ticketId: string, price: number, seed: number, prize: number) => Result;
+  buyScratch: (ticketId: string, seed: number, prize: number) => Result;
   settleScratch: () => Result;
   buyDraw: (tickets: Ticket[], draw: DrawResult) => Result;
   settleDraw: () => Result;
@@ -120,7 +120,7 @@ export const useGame = create<Store>()(
         recordFreeSpin: () => commit(recordFreeSpin(get().save)),
         setFreeSpin: (free) => set((state) => ({ save: setFreeSpin(state.save, free) })),
         creditSlotWin: (amount, bet) => commit(creditSlotWin(get().save, amount, bet)),
-        buyScratch: (ticketId, price, seed, prize) => commit(buyScratch(get().save, ticketId, price, seed, prize)),
+        buyScratch: (ticketId, seed, prize) => commit(buyScratch(get().save, ticketId, seed, prize)),
         settleScratch: () => commit(settleScratch(get().save)),
         buyDraw: (tickets, draw) => commit(purchaseDraw(get().save, tickets, draw)),
         settleDraw: () => commit(settleDraw(get().save)),

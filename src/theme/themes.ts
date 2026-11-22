@@ -36,7 +36,6 @@ export type Theme = {
   premium: boolean;
   coinPrice: number;
   iapProductId?: string;
-  iapPrice?: string;
   music: MusicId;
   particle: ParticleKind;
   winStyle: WinStyle;
@@ -144,7 +143,6 @@ export const THEMES: Theme[] = [
     premium: true,
     coinPrice: 15_000,
     iapProductId: 'theme.neon',
-    iapPrice: '$2.99',
     music: 'neon',
     particle: 'neon',
     winStyle: 'neon',
@@ -176,9 +174,8 @@ export const THEMES: Theme[] = [
     name: "Pharaoh's Gold",
     tagline: 'Lapis, sand, and a heavier kind of gold.',
     premium: true,
-    coinPrice: 25_000,
+    coinPrice: 27_000,
     iapProductId: 'theme.pharaoh',
-    iapPrice: '$3.99',
     music: 'pharaoh',
     particle: 'sand',
     winStyle: 'gold',
@@ -207,9 +204,8 @@ export const THEMES: Theme[] = [
     name: 'Dragon Emperor',
     tagline: 'Crimson lacquer, jade sparks, falling embers.',
     premium: true,
-    coinPrice: 25_000,
+    coinPrice: 33_000,
     iapProductId: 'theme.dragon',
-    iapPrice: '$4.99',
     music: 'dragon',
     particle: 'ember',
     winStyle: 'dragon',
@@ -238,9 +234,8 @@ export const THEMES: Theme[] = [
     name: 'Deep Sea Treasure',
     tagline: 'Abyss blue, rising bubbles, a pale glow.',
     premium: true,
-    coinPrice: 20_000,
+    coinPrice: 21_000,
     iapProductId: 'theme.ocean',
-    iapPrice: '$3.99',
     music: 'ocean',
     particle: 'bubble',
     winStyle: 'ocean',
@@ -272,9 +267,8 @@ export const THEMES: Theme[] = [
     name: 'Cosmic Galaxy',
     tagline: 'Violet nebula and a slow field of stars.',
     premium: true,
-    coinPrice: 30_000,
+    coinPrice: 45_000,
     iapProductId: 'theme.cosmos',
-    iapPrice: '$4.99',
     music: 'cosmos',
     particle: 'star',
     winStyle: 'cosmos',
@@ -306,9 +300,8 @@ export const THEMES: Theme[] = [
     name: 'Diamond Royale',
     tagline: 'The brightest room. Prism light on every edge.',
     premium: true,
-    coinPrice: 50_000,
+    coinPrice: 57_000,
     iapProductId: 'theme.diamond',
-    iapPrice: '$6.99',
     music: 'diamond',
     particle: 'sparkle',
     winStyle: 'diamond',

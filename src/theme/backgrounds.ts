@@ -18,7 +18,6 @@ export type BackgroundDef = {
   coinPrice: number;
   levelRequired: number;
   iapProductId?: string;
-  iapPrice?: string;
   colors: readonly [string, string, string];
 };
 
@@ -78,7 +77,6 @@ export const BACKGROUNDS: BackgroundDef[] = [
     coinPrice: 15_000,
     levelRequired: 0,
     iapProductId: 'bg.candy',
-    iapPrice: '$2.99',
     colors: ['#ff8fb8', '#ffe27a', '#8fd3ff'],
   },
   {
@@ -104,7 +102,6 @@ export const BACKGROUNDS: BackgroundDef[] = [
     coinPrice: 0,
     levelRequired: 0,
     iapProductId: 'bg.palace',
-    iapPrice: '$4.99',
     colors: ['#3a2a10', '#c6a15a', '#6b4a16'],
   },
   {

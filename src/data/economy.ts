@@ -13,9 +13,9 @@ export const WHEEL_PRIZES = [300, 500, 800, 1_200, 1_800, 2_500, 5_000, 10_000];
 export const VIP_TIERS = [
   { id: 'bronze', name: 'Bronze', min: 0, multiplier: 1, perk: 'Standard bonuses' },
   { id: 'silver', name: 'Silver', min: 5_000, multiplier: 1.05, perk: '+5% daily, hourly, and wheel coins' },
-  { id: 'gold', name: 'Gold', min: 25_000, multiplier: 1.1, perk: '+10% bonuses' },
-  { id: 'platinum', name: 'Platinum', min: 100_000, multiplier: 1.15, perk: '+15% bonuses' },
-  { id: 'diamond', name: 'Diamond', min: 400_000, multiplier: 1.25, perk: '+25% bonuses' },
+  { id: 'gold', name: 'Gold', min: 25_000, multiplier: 1.1, perk: '+10% daily, hourly, and wheel coins' },
+  { id: 'platinum', name: 'Platinum', min: 100_000, multiplier: 1.15, perk: '+15% daily, hourly, and wheel coins' },
+  { id: 'diamond', name: 'Diamond', min: 400_000, multiplier: 1.25, perk: '+25% daily, hourly, and wheel coins' },
 ] as const;
 
 export type VipTierId = (typeof VIP_TIERS)[number]['id'];

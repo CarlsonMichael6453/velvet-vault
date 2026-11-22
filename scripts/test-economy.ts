@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 
 import { levelFromXp, maxBetForLevel } from '../src/data/economy';
+import { COIN_PRODUCTS, PRODUCTS, coinPackPremium, usdPrice } from '../src/data/products';
 import { SCRATCH_TICKETS, presentTicket, ticketRtp } from '../src/games/scratch/tickets';
+import { BACKGROUNDS } from '../src/theme/backgrounds';
+import { STYLES } from '../src/theme/styles';
+import { THEMES } from '../src/theme/themes';
 import { drawResult, quickPick, scoreTicket, scoreTickets } from '../src/games/lottery/draw';
 import { evaluateLine, evaluateSpin, spinGrid } from '../src/games/slots/engine';
 import { MACHINES } from '../src/games/slots/machines';
@@ -106,7 +110,7 @@ function testScratchDeterministic() {
 
   let save = confirmAge(freshSave()).save;
   save = { ...save, achievements: { 'scratch-jackpot': 1, 'scratch-10': 1, 'wager-10k': 1 } };
-  const bought = buyScratch(save, def.id, def.price, 42, a.prize, { today: '2026-04-01', now: 10 });
+  const bought = buyScratch(save, def.id, 42, a.prize, { today: '2026-04-01', now: 10 });
   assert.equal(bought.ok, true);
   assert.equal(bought.save.coins, 8000 - def.price + 200);
   const settled = settleScratch(bought.save, { today: '2026-04-01', now: 10 });
@@ -195,6 +199,79 @@ function simulateSlots() {
   }
 }
 
+function testCatalog() {
+  const tier = /^\$[0-9]+\.99$/;
+  for (const product of PRODUCTS) {
+    assert.match(product.priceString, tier, `${product.id} price ${product.priceString}`);
+    assert.ok(usdPrice(product.priceString) > 0, product.id);
+  }
+
+  let previousRate = 0;
+  for (const product of COIN_PRODUCTS) {
+    assert.ok(product.coins && product.coins > 0, product.id);
+    assert.ok(
+      product.description.includes(product.coins!.toLocaleString('en-US')),
+      `${product.id} description should name ${product.coins} coins`,
+    );
+    const rate = product.coins! / usdPrice(product.priceString);
+    assert.ok(rate > previousRate, `${product.id} should return more coins per dollar than the smaller pack`);
+    previousRate = rate;
+    const premium = coinPackPremium(product);
+    if (product.id === COIN_PRODUCTS[0].id) assert.equal(premium, null);
+    else assert.ok(premium != null && premium > 0, product.id);
+  }
+
+  const rooms = THEMES.filter((theme) => theme.premium)
+    .map((theme) => {
+      const product = PRODUCTS.find((item) => item.themeId === theme.id);
+      assert.ok(product, `${theme.id} needs a store product`);
+      assert.equal(product!.id, theme.iapProductId);
+      return { id: theme.id, coins: theme.coinPrice, usd: usdPrice(product!.priceString) };
+    })
+    .sort((a, b) => a.usd - b.usd);
+
+  let lastCoins = 0;
+  let lastUsd = 0;
+  let lastRate = 0;
+  for (const room of rooms) {
+    const rate = room.coins / room.usd;
+    assert.ok(room.coins > lastCoins, `${room.id} coin price should rise with the cash price`);
+    assert.ok(room.usd > lastUsd, `${room.id} cash price should be unique and higher`);
+    assert.ok(rate > lastRate, `${room.id} should be a better coins-per-dollar deal than the cheaper room`);
+    lastCoins = room.coins;
+    lastUsd = room.usd;
+    lastRate = rate;
+  }
+
+  const freeLooks = new Set(['velvet', 'midnight', 'sunset', 'hall', 'cabin', 'beach', 'classic', 'bubbly', 'winter']);
+  for (const item of [...THEMES, ...BACKGROUNDS, ...STYLES]) {
+    const levelRequired = 'levelRequired' in item ? item.levelRequired : 0;
+    if (!item.iapProductId) {
+      if (item.coinPrice === 0 && levelRequired === 0) {
+        assert.ok(freeLooks.has(item.id), `${item.id} has no price and no level gate`);
+      }
+      continue;
+    }
+    const product = PRODUCTS.find((entry) => entry.id === item.iapProductId);
+    assert.ok(product, `${item.id} store id ${item.iapProductId} is missing`);
+    if (item.coinPrice > 0) {
+      const rate = item.coinPrice / usdPrice(product!.priceString);
+      assert.ok(rate >= 4_500, `${item.id} cash price is a worse deal than the coin cost`);
+    }
+  }
+
+  let lastTicketPrice = 0;
+  let lastTicketRtp = 0;
+  for (const ticket of SCRATCH_TICKETS) {
+    const rtp = ticketRtp(ticket);
+    if (ticket.price > lastTicketPrice) {
+      assert.ok(rtp + 1e-9 >= lastTicketRtp, `${ticket.name} pays back less than a cheaper ticket`);
+    }
+    lastTicketPrice = ticket.price;
+    lastTicketRtp = rtp;
+  }
+}
+
 function reportScratch() {
   console.log('\nScratch RTP');
   for (const ticket of SCRATCH_TICKETS) {
@@ -220,6 +297,7 @@ testLines();
 testWallet();
 testScratchDeterministic();
 testDrawJackpot();
+testCatalog();
 reportScratch();
 simulateSlots();
 reportLevels();

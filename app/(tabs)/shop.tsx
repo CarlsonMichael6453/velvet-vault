@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
-import { COIN_PRODUCTS, type Product } from '@/src/data/products';
+import { COIN_PRODUCTS, coinPackPremium, type Product } from '@/src/data/products';
 import { formatCoins } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
 import { iap } from '@/src/services/iap';
@@ -56,6 +56,7 @@ export default function ShopScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.name, { color: theme.colors.text }]}>{product.title}</Text>
                 <Text style={[styles.coins, { color: theme.colors.gold }]}>{formatCoins(product.coins ?? 0)} coins</Text>
+                <Text style={[styles.coins, { color: theme.colors.accent2 }]}>{packValue(product)}</Text>
                 <Text style={[styles.detail, { color: theme.colors.muted }]}>{product.description}</Text>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 6 }}>
@@ -93,6 +94,12 @@ export default function ShopScreen() {
       ) : null}
     </Screen>
   );
+}
+
+function packValue(product: Product): string {
+  const premium = coinPackPremium(product);
+  if (premium == null) return 'Base pack';
+  return `+${(premium * 100).toFixed(1)}% coins per dollar`;
 }
 
 const styles = StyleSheet.create({

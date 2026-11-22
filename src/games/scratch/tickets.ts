@@ -100,7 +100,7 @@ export const SCRATCH_TICKETS: ScratchTicketDef[] = [
       { amount: 2_500, weight: 85, title: 'Clean row' },
       { amount: 5_500, weight: 38, title: 'Double row' },
       { amount: 16_000, weight: 13, title: 'Diamond line' },
-      { amount: 40_000, weight: 4, title: 'Full cut' },
+      { amount: 44_000, weight: 4, title: 'Full cut' },
     ],
   },
   {
@@ -116,7 +116,7 @@ export const SCRATCH_TICKETS: ScratchTicketDef[] = [
       { amount: 6_000, weight: 80, title: 'Court prize' },
       { amount: 14_000, weight: 38, title: 'Imperial' },
       { amount: 40_000, weight: 13, title: 'Throne' },
-      { amount: 120_000, weight: 4, title: 'Emperor' },
+      { amount: 124_000, weight: 4, title: 'Emperor' },
     ],
   },
 ];

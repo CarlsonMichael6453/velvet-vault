@@ -10,11 +10,12 @@ import {
   levelTitle,
   maxBetForLevel,
   vipFromPoints,
+  DRAW_TICKET_PRICE,
 } from '@/src/data/economy';
 import { ACHIEVEMENTS, MISSION_KEYS } from '@/src/data/progress';
 import type { Product } from '@/src/data/products';
-import { DRAW_TICKET_PRICE } from '@/src/data/economy';
 import { scoreTickets, type DrawResult, type Ticket } from '@/src/games/lottery/draw';
+import { getScratchTicket } from '@/src/games/scratch/tickets';
 import { formatCoins, shiftDay, todayKey } from '@/src/lib/format';
 import type { Clock, Notice, PendingDraw, PendingScratch, PendingWheel, SaveState, Stats } from '@/src/store/types';
 import { emptyStats } from '@/src/store/types';
@@ -249,7 +250,10 @@ export function creditSlotWin(save: SaveState, amount: number, bet: number, cloc
   return finalize(save, next, notices, amount);
 }
 
-export function buyScratch(save: SaveState, ticketId: string, price: number, seed: number, prize: number, clock = liveClock()): Result {
+export function buyScratch(save: SaveState, ticketId: string, seed: number, prize: number, clock = liveClock()): Result {
+  const ticket = getScratchTicket(ticketId);
+  if (!ticket) return fail(save, 'That ticket is not for sale.');
+  const price = ticket.price;
   if (save.pendingScratch && !save.pendingScratch.credited) return fail(save, 'Finish the ticket already in your hand.');
   if (save.coins < price) return fail(save, 'Not enough coins for that ticket.');
   const pending: PendingScratch = { ticketId, seed, prize, price, credited: false };

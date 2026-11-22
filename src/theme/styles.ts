@@ -26,7 +26,6 @@ export type GameStyle = {
   coinPrice: number;
   levelRequired: number;
   iapProductId?: string;
-  iapPrice?: string;
   displayFont: string;
   displayScale: number;
   plateRadius: number;
@@ -191,7 +190,6 @@ export const STYLES: GameStyle[] = [
     coinPrice: 10_000,
     levelRequired: 0,
     iapProductId: 'style.neon',
-    iapPrice: '$2.99',
     displayFont: 'Orbitron_700Bold',
     displayScale: 0.82,
     plateRadius: 0.08,
@@ -353,7 +351,6 @@ export const STYLES: GameStyle[] = [
     coinPrice: 0,
     levelRequired: 0,
     iapProductId: 'style.royal',
-    iapPrice: '$3.99',
     displayFont: 'Cinzel_900Black',
     displayScale: 0.92,
     plateRadius: 0.12,

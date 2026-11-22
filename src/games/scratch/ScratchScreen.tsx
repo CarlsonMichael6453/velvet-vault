@@ -130,7 +130,7 @@ export function ScratchPlay() {
     levelBeforeBuy.current = levelFromXp(useGame.getState().save.xp).level;
     const seed = Math.floor(Math.random() * 1_000_000_000);
     const face = presentTicket(ticket, seed);
-    const result = useGame.getState().buyScratch(ticket.id, ticket.price, seed, face.prize);
+    const result = useGame.getState().buyScratch(ticket.id, seed, face.prize);
     if (!result.ok) {
       setError(result.error ?? 'Could not buy that ticket.');
       return;

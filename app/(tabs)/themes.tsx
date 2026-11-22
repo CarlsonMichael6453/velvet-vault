@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BackgroundScene } from '@/src/components/scenes';
 import { SymbolTile, CoinPill, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
 import { levelFromXp } from '@/src/data/economy';
+import { getProduct } from '@/src/data/products';
 import { formatCoins } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
 import { iap } from '@/src/services/iap';
@@ -114,7 +115,7 @@ export default function ThemesScreen() {
                 coinPrice={item.coinPrice}
                 levelRequired={item.levelRequired}
                 level={level}
-                iapPrice={item.iapPrice}
+                iapPrice={storePrice(item.iapProductId)}
                 busy={busy === item.iapProductId}
                 onEquip={() => {
                   const result = useGame.getState().applyBackground(item.id);
@@ -138,7 +139,7 @@ export default function ThemesScreen() {
                 coinPrice={item.coinPrice}
                 levelRequired={item.levelRequired}
                 level={level}
-                iapPrice={item.iapPrice}
+                iapPrice={storePrice(item.iapProductId)}
                 busy={busy === item.iapProductId}
                 onEquip={() => {
                   const result = useGame.getState().applyStyle(item.id);
@@ -162,6 +163,11 @@ function reportBuy(run: () => { ok: boolean; error?: string }, name: string, set
   const after = useGame.getState().save.coins;
   setMessage(result.ok ? `${name} unlocked for ${formatCoins(before - after)} coins.` : result.error ?? 'Could not unlock.');
   if (result.ok) void playSfx('unlock');
+}
+
+function storePrice(productId: string | undefined): string | undefined {
+  if (!productId) return undefined;
+  return getProduct(productId)?.priceString;
 }
 
 function owns(owned: string[], item: { id: string; coinPrice: number; levelRequired: number; iapProductId?: string }, level: number) {
@@ -206,7 +212,7 @@ function RoomCard({
         coinPrice={item.coinPrice}
         levelRequired={0}
         level={1}
-        iapPrice={item.iapPrice}
+        iapPrice={storePrice(item.iapProductId)}
         busy={busy}
         onEquip={onEquip}
         onBuy={onBuy}

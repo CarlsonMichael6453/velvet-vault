@@ -70,7 +70,7 @@ export const THEME_PRODUCTS: Product[] = [
     type: 'non_consumable',
     title: "Pharaoh's Gold",
     description: "Unlock the Pharaoh's Gold theme.",
-    priceString: '$3.99',
+    priceString: '$4.99',
     themeId: 'pharaoh',
   },
   {
@@ -78,7 +78,7 @@ export const THEME_PRODUCTS: Product[] = [
     type: 'non_consumable',
     title: 'Dragon Emperor',
     description: 'Unlock the Dragon Emperor theme.',
-    priceString: '$4.99',
+    priceString: '$5.99',
     themeId: 'dragon',
   },
   {
@@ -94,7 +94,7 @@ export const THEME_PRODUCTS: Product[] = [
     type: 'non_consumable',
     title: 'Cosmic Galaxy',
     description: 'Unlock the Cosmic Galaxy theme.',
-    priceString: '$4.99',
+    priceString: '$7.99',
     themeId: 'cosmos',
   },
   {
@@ -102,7 +102,7 @@ export const THEME_PRODUCTS: Product[] = [
     type: 'non_consumable',
     title: 'Diamond Royale',
     description: 'Unlock the Diamond Royale theme.',
-    priceString: '$6.99',
+    priceString: '$9.99',
     themeId: 'diamond',
   },
 ];
@@ -132,7 +132,7 @@ export const STYLE_PRODUCTS: Product[] = [
     type: 'non_consumable',
     title: 'Neon Cyber',
     description: 'Unlock the Neon Cyber game style.',
-    priceString: '$2.99',
+    priceString: '$1.99',
     styleId: 'neon',
   },
   {
@@ -149,4 +149,20 @@ export const PRODUCTS: Product[] = [...COIN_PRODUCTS, ...THEME_PRODUCTS, ...BACK
 
 export function getProduct(id: string): Product | undefined {
   return PRODUCTS.find((product) => product.id === id);
+}
+
+/** Dollar amounts live only on products. Screens should read this, not a second copy. */
+export function usdPrice(priceString: string): number {
+  return Number(priceString.replace(/[^0-9.]/g, ''));
+}
+
+export function coinsPerDollar(coins: number, priceString: string): number {
+  return coins / usdPrice(priceString);
+}
+
+/** Extra coins per dollar versus Pocket Change. Null on the base pack. */
+export function coinPackPremium(product: Product): number | null {
+  const base = COIN_PRODUCTS[0];
+  if (!product.coins || !base.coins || product.id === base.id) return null;
+  return coinsPerDollar(product.coins, product.priceString) / coinsPerDollar(base.coins, base.priceString) - 1;
 }
