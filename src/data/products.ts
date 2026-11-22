@@ -9,9 +9,21 @@ export type Product = {
   backgroundId?: string;
   styleId?: string;
   badge?: 'Popular' | 'Best value';
+  /** Can be granted only once per vault. */
+  oneTime?: boolean;
+  /** Marks the premium season track as owned. */
+  seasonPass?: boolean;
 };
 
 export const COIN_PRODUCTS: Product[] = [
+  {
+    id: 'coins.chip',
+    type: 'consumable',
+    title: 'Single Chip',
+    description: '2,000 Velvet Coins. A smaller pack, with fewer coins per dollar.',
+    priceString: '$0.99',
+    coins: 2_000,
+  },
   {
     id: 'coins.pocket',
     type: 'consumable',
@@ -145,7 +157,40 @@ export const STYLE_PRODUCTS: Product[] = [
   },
 ];
 
-export const PRODUCTS: Product[] = [...COIN_PRODUCTS, ...THEME_PRODUCTS, ...BACKDROP_PRODUCTS, ...STYLE_PRODUCTS];
+export const OFFER_PRODUCTS: Product[] = [
+  {
+    id: 'offer.starter',
+    type: 'non_consumable',
+    title: 'First Night',
+    description: '20,000 Velvet Coins and the Neon Vegas room. Once per vault. Fewer coins per dollar than Emperor’s Fortune.',
+    priceString: '$4.99',
+    coins: 20_000,
+    themeId: 'neon',
+    oneTime: true,
+  },
+  {
+    id: 'season.velvet',
+    type: 'non_consumable',
+    title: 'Velvet Season',
+    description: 'The premium track for this 30-day season, and the Gilded Season style.',
+    priceString: '$4.99',
+    styleId: 'gilded',
+    oneTime: true,
+    seasonPass: true,
+  },
+  {
+    id: 'holiday.hearth',
+    type: 'non_consumable',
+    title: 'Hearth & Holly',
+    description: '25,000 Velvet Coins and the Hearth & Holly room. A winter pack. Fewer coins per dollar than Emperor’s Fortune.',
+    priceString: '$6.99',
+    coins: 25_000,
+    themeId: 'hearth',
+    oneTime: true,
+  },
+];
+
+export const PRODUCTS: Product[] = [...COIN_PRODUCTS, ...THEME_PRODUCTS, ...BACKDROP_PRODUCTS, ...STYLE_PRODUCTS, ...OFFER_PRODUCTS];
 
 export function getProduct(id: string): Product | undefined {
   return PRODUCTS.find((product) => product.id === id);
@@ -160,9 +205,20 @@ export function coinsPerDollar(coins: number, priceString: string): number {
   return coins / usdPrice(priceString);
 }
 
-/** Extra coins per dollar versus Pocket Change. Null on the base pack. */
+/** Extra coins per dollar versus the smallest coin pack. Null on that pack. */
 export function coinPackPremium(product: Product): number | null {
   const base = COIN_PRODUCTS[0];
   if (!product.coins || !base.coins || product.id === base.id) return null;
   return coinsPerDollar(product.coins, product.priceString) / coinsPerDollar(base.coins, base.priceString) - 1;
+}
+
+/** 0 is the quietest pack. 5 is Emperor’s Fortune. */
+export function celebrationTier(priceString: string): 0 | 1 | 2 | 3 | 4 | 5 {
+  const usd = usdPrice(priceString);
+  if (usd < 1.5) return 0;
+  if (usd < 3) return 1;
+  if (usd < 7) return 2;
+  if (usd < 15) return 3;
+  if (usd < 30) return 4;
+  return 5;
 }

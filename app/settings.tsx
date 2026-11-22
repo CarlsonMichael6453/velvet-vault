@@ -12,8 +12,10 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const settings = useGame((state) => state.save.settings);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [restoreNote, setRestoreNote] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
 
-  function toggle(key: 'sound' | 'music' | 'haptics' | 'reducedMotion') {
+  function toggle(key: 'sound' | 'music' | 'haptics' | 'reducedMotion' | 'skipAnimations') {
     useGame.getState().updateSettings({ [key]: !settings[key] });
   }
 
@@ -27,7 +29,9 @@ export default function SettingsScreen() {
         <Row label="Music" value={settings.music} onPress={() => toggle('music')} />
         <Row label="Haptics" value={settings.haptics} onPress={() => toggle('haptics')} />
         <Row label="Reduce motion" value={settings.reducedMotion} onPress={() => toggle('reducedMotion')} />
+        <Row label="Skip animations" value={settings.skipAnimations} onPress={() => toggle('skipAnimations')} />
       </Card>
+      <Muted>Skip animations finishes long wins, purchases, and reveals immediately. You can also tap those moments to skip them.</Muted>
       <Text style={[styles.section, { color: theme.colors.gold }]}>Play responsibly</Text>
       {RESPONSIBLE.map((line) => (
         <Text key={line} style={[styles.line, { color: theme.colors.text }]}>{line}</Text>
@@ -38,7 +42,22 @@ export default function SettingsScreen() {
         <GhostButton label="Read the full notice" onPress={() => router.push('/legal')} />
       </View>
       <Text style={[styles.section, { color: theme.colors.gold }]}>This device</Text>
-      <Muted>Progress is stored only on this device. Uninstalling the app deletes it. There is no account.</Muted>
+      <Muted>A copy stays on this device. Cloud save is optional and does not make coins cashable.</Muted>
+      <View style={{ marginTop: 8, gap: 8 }}>
+        <GhostButton label="Cloud save" onPress={() => router.push('/account')} />
+        <GhostButton
+          label={restoring ? 'Checking the store…' : 'Restore purchases'}
+          onPress={() => {
+            if (restoring) return;
+            setRestoring(true);
+            void useGame.getState().restorePurchases().then((result) => {
+              setRestoreNote(result.message);
+              setRestoring(false);
+            });
+          }}
+        />
+      </View>
+      {restoreNote ? <Text style={{ color: theme.colors.accent2, fontFamily: 'Outfit_500Medium', marginTop: 8 }}>{restoreNote}</Text> : null}
       {confirmReset ? (
         <View style={{ gap: 8, marginTop: 10 }}>
           <Text style={{ color: theme.colors.danger, fontFamily: 'Outfit_600SemiBold' }}>Reset the vault? Coins, level, and themes go back to the welcome gift.</Text>

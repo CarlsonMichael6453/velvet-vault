@@ -108,6 +108,9 @@ export default function ClubScreen() {
           <Muted>{vip.perk}. Points come from coin purchases plus a slice of what you wager. They do not create cash value.</Muted>
           <Text style={{ color: theme.colors.text, fontFamily: 'SpaceMono', marginTop: 8 }}>{formatCoins(vip.points)} points</Text>
           {vip.next ? <Muted>{formatCoins(vip.next.min - vip.points)} points to {vip.next.name}.</Muted> : <Muted>You are at the top tier.</Muted>}
+          <View style={{ marginTop: 10 }}>
+            <GoldButton compact label="Open the VIP room" onPress={() => router.push('/vip')} />
+          </View>
         </Card>
       ) : null}
       <LegalLine />

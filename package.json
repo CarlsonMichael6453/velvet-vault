@@ -50,7 +50,7 @@
     "web": "expo start --web --port 43123",
     "export:web": "EXPO_PAGES_BASE=/velvet-vault expo export -p web && cp dist/index.html dist/404.html && touch dist/.nojekyll",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/test-economy.ts && tsx scripts/test-review.ts && tsx scripts/test-cosmetics.ts",
+    "test": "tsx scripts/test-economy.ts && tsx scripts/test-review.ts && tsx scripts/test-cosmetics.ts && tsx scripts/test-offers.ts",
     "audio": "node scripts/synth-audio.mjs"
   },
   "private": true

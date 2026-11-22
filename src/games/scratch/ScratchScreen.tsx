@@ -157,7 +157,12 @@ export function ScratchPlay() {
     }
   }
 
+  const skipAnimations = useGame((state) => state.save.settings.skipAnimations);
   const revealedRatio = mask.filter(Boolean).length / mask.length;
+  useEffect(() => {
+    if (!skipAnimations || !owned || settled) return;
+    setMask(Array(COLS * ROWS).fill(true));
+  }, [skipAnimations, owned, settled]);
   useEffect(() => {
     if (!owned || settled || revealedRatio < 0.99) return;
     settle(true);
@@ -244,7 +249,7 @@ export function ScratchPlay() {
 
       <View style={{ padding: 16, gap: 8 }}>
         {held && !settled ? (
-          <GhostButton label="Reveal the rest" onPress={() => setMask(Array(COLS * ROWS).fill(true))} />
+          <GhostButton label="Skip the foil" onPress={() => setMask(Array(COLS * ROWS).fill(true))} />
         ) : (
           <GoldButton label={`${settled ? 'Buy another' : 'Buy'} for ${formatCoins(ticket.price)}`} onPress={buy} />
         )}

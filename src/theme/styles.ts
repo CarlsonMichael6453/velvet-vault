@@ -13,7 +13,8 @@ export type StyleId =
   | 'royal'
   | 'ocean'
   | 'space'
-  | 'west';
+  | 'west'
+  | 'gilded';
 
 export type FoilMark = 'none' | 'bubble' | 'flake' | 'pixel' | 'stripe' | 'star';
 
@@ -471,6 +472,39 @@ export const STYLES: GameStyle[] = [
     particle: 'sand',
     music: 'sunset',
     winCue: 'bigwin',
+    spinCue: 'spin',
+  },
+  {
+    id: 'gilded',
+    name: 'Gilded Season',
+    tagline: 'The season style. A heavier gold rim, sparkle in the cabinet, and a fanfare on every hit.',
+    coinPrice: 0,
+    levelRequired: 0,
+    iapProductId: 'season.velvet',
+    displayFont: 'Cinzel_900Black',
+    displayScale: 0.9,
+    plateRadius: 0.14,
+    plateBorder: 3,
+    gloss: true,
+    frost: false,
+    pixel: false,
+    symbolFrom: '#6a4a16',
+    symbolTo: '#fff1c2',
+    symbolInk: '#2a1608',
+    accent: '#fff6d4',
+    buttonFrom: '#fff1c2',
+    buttonTo: '#a7842a',
+    buttonRadius: 10,
+    frameRadius: 12,
+    frameWidth: 4,
+    reel: '#1a1208',
+    foil: ['#fff6d4', '#c9a15a'],
+    foilMark: 'star',
+    ballRadius: 22,
+    ball: '#fff1c2',
+    particle: 'sparkle',
+    music: 'diamond',
+    winCue: 'fanfare',
     spinCue: 'spin',
   },
 ];

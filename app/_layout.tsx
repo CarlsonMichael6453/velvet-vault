@@ -18,6 +18,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { VaultMark } from '@/src/components/art';
 import { AgeGate } from '@/src/components/AgeGate';
 import { NoticeStack } from '@/src/components/ui';
+import { startCloudSync, useCloud } from '@/src/services/cloud';
 import { syncMusic } from '@/src/services/audio';
 import { useGame } from '@/src/store/gameStore';
 import { getStyle } from '@/src/theme/styles';
@@ -97,12 +98,23 @@ export default function RootLayout() {
             </Stack>
             <AgeGate />
             <AudioBridge />
+            <CloudBridge />
             <NoticeStack />
           </View>
         </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+function CloudBridge() {
+  const hydrated = useGame((state) => state.hydrated);
+  useEffect(() => {
+    if (!hydrated) return undefined;
+    void useCloud.getState().boot();
+    return startCloudSync();
+  }, [hydrated]);
+  return null;
 }
 
 function AudioBridge() {

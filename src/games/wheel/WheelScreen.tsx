@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { G, Path, Text as SvgText } from 'react-native-svg';
 
@@ -19,9 +19,11 @@ export function WheelScreen() {
   const look = useStyle();
   const save = useGame((state) => state.save);
   const reduced = save.settings.reducedMotion;
+  const skipAnimations = save.settings.skipAnimations;
   const rotation = useSharedValue(0);
   const lights = useSharedValue(0);
   const [spinning, setSpinning] = useState(false);
+  const finished = useRef(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [wheelSize, setWheelSize] = useState(280);
@@ -41,6 +43,8 @@ export function WheelScreen() {
   const bulbStyle = useAnimatedStyle(() => ({ opacity: 0.35 + lights.value * 0.65 }));
 
   function finish() {
+    if (finished.current) return;
+    finished.current = true;
     const settled = useGame.getState().settleWheel();
     setSpinning(false);
     if (settled.ok) {
@@ -52,6 +56,7 @@ export function WheelScreen() {
 
   function spin() {
     if (spinning) return;
+    finished.current = false;
     const index = Math.floor(Math.random() * WHEEL_PRIZES.length);
     const started = useGame.getState().startWheel(index);
     if (!started.ok) {
@@ -61,11 +66,11 @@ export function WheelScreen() {
     setError(null);
     setResult(null);
     setSpinning(true);
-    const turns = 6 * 360;
+    const turns = skipAnimations ? 0 : 6 * 360;
     const current = rotation.value % 360;
     const target = (360 - index * SEGMENT) % 360;
     const delta = (target - current + 360) % 360;
-    rotation.value = withTiming(rotation.value + turns + delta, { duration: reduced ? 700 : 4800, easing: Easing.bezier(0.12, 0.7, 0.08, 1) }, (finished) => {
+    rotation.value = withTiming(rotation.value + turns + delta, { duration: skipAnimations ? 1 : reduced ? 700 : 4800, easing: Easing.bezier(0.12, 0.7, 0.08, 1) }, (finished) => {
       if (finished) runOnJS(finish)();
     });
     void playSfx('spin');
@@ -84,6 +89,16 @@ export function WheelScreen() {
         onLayout={(event) => setWheelSize(Math.max(200, Math.min(300, Math.floor(event.nativeEvent.layout.width - 8))))}
       >
         <View style={[styles.pointer, { borderTopColor: theme.colors.gold }]} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Tap to skip the wheel"
+          onPress={() => {
+            if (!spinning || skipAnimations) return;
+            rotation.value = rotation.value;
+            finish();
+            setSpinning(false);
+          }}
+        >
         <Animated.View style={wheelStyle}>
           <Svg width={wheelSize} height={wheelSize} viewBox="0 0 300 300">
             <G>
@@ -106,6 +121,7 @@ export function WheelScreen() {
             </G>
           </Svg>
         </Animated.View>
+        </Pressable>
         <Animated.View style={[styles.hub, { backgroundColor: theme.colors.bg0, borderColor: look.accent }, bulbStyle]} />
       </View>
       {result ? <Text style={[styles.result, { color: theme.colors.gold }]}>{result}</Text> : null}

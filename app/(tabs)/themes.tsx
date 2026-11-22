@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Particles } from '@/src/components/fx';
 import { BackgroundScene } from '@/src/components/scenes';
 import { SymbolTile, CoinPill, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
 import { levelFromXp } from '@/src/data/economy';
@@ -89,7 +90,7 @@ export default function ThemesScreen() {
                 const result = useGame.getState().buyThemeWithCoins(item.id);
                 const after = useGame.getState().save.coins;
                 setMessage(result.ok ? `${item.name} unlocked. ${formatCoins(before - after)} coins.` : result.error ?? 'Could not unlock.');
-                if (result.ok) void playSfx('unlock');
+                if (result.ok) void playSfx(item.coinPrice >= 25_000 || item.id === 'hearth' || item.id === 'diamond' ? 'fanfare' : 'unlock');
               }}
               onIap={() => item.iapProductId && void buyIap(item.iapProductId, item.name)}
             />
@@ -146,7 +147,7 @@ export default function ThemesScreen() {
                   setMessage(result.ok ? `${item.name} is on the games.` : result.error ?? 'Could not apply it.');
                   if (result.ok) void playSfx('tap');
                 }}
-                onBuy={() => reportBuy(() => useGame.getState().buyStyleWithCoins(item.id), item.name, setMessage)}
+                onBuy={() => reportBuy(() => useGame.getState().buyStyleWithCoins(item.id), item.name, setMessage, item.coinPrice >= 12_000 || item.id === 'gilded' || item.id === 'royal' ? 'fanfare' : 'unlock')}
                 onIap={() => item.iapProductId && void buyIap(item.iapProductId, item.name)}
               />
             </View>
@@ -157,12 +158,17 @@ export default function ThemesScreen() {
   );
 }
 
-function reportBuy(run: () => { ok: boolean; error?: string }, name: string, setMessage: (value: string) => void) {
+function reportBuy(
+  run: () => { ok: boolean; error?: string },
+  name: string,
+  setMessage: (value: string) => void,
+  cue: 'unlock' | 'fanfare' = 'unlock',
+) {
   const before = useGame.getState().save.coins;
   const result = run();
   const after = useGame.getState().save.coins;
   setMessage(result.ok ? `${name} unlocked for ${formatCoins(before - after)} coins.` : result.error ?? 'Could not unlock.');
-  if (result.ok) void playSfx('unlock');
+  if (result.ok) void playSfx(cue);
 }
 
 function storePrice(productId: string | undefined): string | undefined {
@@ -198,6 +204,7 @@ function RoomCard({
   return (
     <View style={[styles.card, { borderColor: active ? theme.colors.gold : item.colors.cardBorder }]}>
       <View style={[styles.preview, { backgroundColor: item.colors.bg1 }]}>
+        <Particles theme={item} reduced={useGame((state) => state.save.settings.reducedMotion)} count={roomMotion(item)} />
         <Text style={[styles.previewName, { color: item.colors.gold }]}>{item.name}</Text>
         <Text style={[styles.previewTag, { color: item.colors.text }]}>{item.tagline}</Text>
         <View style={styles.symbols}>
@@ -222,9 +229,21 @@ function RoomCard({
   );
 }
 
+function roomMotion(item: Theme): number {
+  if (item.id === 'hearth' || item.id === 'diamond') return 28;
+  if (item.coinPrice >= 40_000) return 26;
+  if (item.coinPrice >= 25_000) return 16;
+  if (item.coinPrice > 0) return 8;
+  return 0;
+}
+
 function StylePreview({ item }: { item: GameStyle }) {
+  const theme = useTheme();
+  const reduced = useGame((state) => state.save.settings.reducedMotion);
+  const count = item.id === 'gilded' || item.id === 'royal' || item.coinPrice >= 14_000 ? 20 : item.coinPrice >= 10_000 ? 10 : 0;
   return (
     <View style={[styles.preview, { backgroundColor: item.reel }]}>
+      {count > 0 ? <Particles theme={theme} reduced={reduced} kind={item.particle} count={count} /> : null}
       <View style={styles.previewCopy}>
       <Text style={[styles.previewName, { fontFamily: item.displayFont, fontSize: 22 * item.displayScale, color: item.accent }]}>{item.name}</Text>
       <Text style={[styles.previewTag, { color: '#fbf6ea' }]}>{item.tagline}</Text>

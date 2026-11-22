@@ -11,6 +11,7 @@ import Animated, {
 
 import { CoinIcon } from '@/src/components/art';
 import { formatCoins } from '@/src/lib/format';
+import { useGame } from '@/src/store/gameStore';
 import type { Theme, WinStyle } from '@/src/theme/themes';
 
 type Spec = { id: number; x: number; size: number; duration: number; delay: number; color: string; drift: number };
@@ -29,9 +30,19 @@ const PALETTE: Record<Theme['particle'], string[]> = {
   bat: ['#2a1838', '#6a3a78', '#f08a2a'],
 };
 
-export function Particles({ theme, reduced, kind }: { theme: Theme; reduced: boolean; kind?: Theme['particle'] }) {
+export function Particles({
+  theme,
+  reduced,
+  kind,
+  count: countOverride,
+}: {
+  theme: Theme;
+  reduced: boolean;
+  kind?: Theme['particle'];
+  count?: number;
+}) {
   const particle = kind ?? theme.particle;
-  const count = reduced ? 0 : theme.lavish || kind ? 18 : 12;
+  const count = reduced ? 0 : countOverride ?? (theme.lavish || kind ? 18 : 12);
   const specs = useMemo<Spec[]>(() => {
     const colors = PALETTE[particle];
     return Array.from({ length: count }, (_, id) => ({
@@ -126,11 +137,16 @@ export function BigWin({
   onDone: () => void;
 }) {
   const pop = useSharedValue(0.6);
+  const skip = useGame((state) => state.save.settings.skipAnimations);
   useEffect(() => {
+    if (skip) {
+      onDone();
+      return;
+    }
     pop.value = withTiming(1, { duration: 480, easing: Easing.out(Easing.back(1.4)) });
     const timer = setTimeout(onDone, tier === 'jackpot' || tier === 'ultra' ? 4200 : 3200);
     return () => clearTimeout(timer);
-  }, [onDone, pop, tier]);
+  }, [onDone, pop, skip, tier]);
   const titleStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
   const coins = useMemo(() => Array.from({ length: theme.lavish ? 28 : 18 }, (_, id) => ({
     id,
@@ -150,6 +166,7 @@ export function BigWin({
         <Text style={[styles.winTitle, { color: theme.colors.gold }]}>{TITLES[tier]}</Text>
         <Text style={[styles.winAmount, { color: theme.colors.text }]}>+{formatCoins(amount)}</Text>
         <Text style={[styles.winNote, { color: theme.colors.muted }]}>Coins only. No cash value.</Text>
+        <Text style={[styles.winNote, { color: theme.colors.accent2 }]}>Tap to skip</Text>
       </Animated.View>
     </Pressable>
   );

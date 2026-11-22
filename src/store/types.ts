@@ -3,6 +3,8 @@ export type Settings = {
   music: boolean;
   haptics: boolean;
   reducedMotion: boolean;
+  /** Skip long win, purchase, and reveal animations. A tap still skips them when this is off. */
+  skipAnimations: boolean;
 };
 
 export type Stats = {
@@ -96,6 +98,15 @@ export type SaveState = {
   sessions: number;
   /** Day the native store review was last requested, or null. */
   reviewPromptOn: string | null;
+  /** Epoch ms of the last local change. Cloud sync compares this. */
+  updatedAt: number;
+  /** One-time product ids already granted. */
+  ownedOffers: string[];
+  adDay: string | null;
+  adClaims: number;
+  seasonPremium: boolean;
+  seasonFreeClaimed: number[];
+  seasonPremiumClaimed: number[];
 };
 
 export type Notice = { title: string; detail: string };

@@ -2,14 +2,17 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Card, CoinPill, Display, GoldButton, LegalLine, Muted, Screen, Wordmark } from '@/src/components/ui';
+import { Card, CoinPill, Display, GhostButton, GoldButton, LegalLine, Muted, Screen, Wordmark } from '@/src/components/ui';
+import { VipBadge, VipFrame, tierOf } from '@/src/components/vip';
 import { DAILY_REWARDS, HOURLY_COINS, levelFromXp, levelTitle } from '@/src/data/economy';
+import { AD_REWARD, activeHoliday } from '@/src/data/live';
+import { getProduct } from '@/src/data/products';
 import { MACHINES } from '@/src/games/slots/machines';
 import { formatClock, formatCoins, todayKey } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
 import { considerStoreReview } from '@/src/services/reviewPrompt';
 import { useGame } from '@/src/store/gameStore';
-import { dailyAvailable, hourlyRemaining, streakIfClaimed, vipFor } from '@/src/store/logic';
+import { adsLeft, dailyAvailable, hourlyRemaining, streakIfClaimed, vipFor } from '@/src/store/logic';
 import { useTheme } from '@/src/theme/useTheme';
 
 export default function LobbyScreen() {
@@ -24,6 +27,13 @@ export default function LobbyScreen() {
   const streakPreview = streakIfClaimed(save, today);
   const hourLeft = hourlyRemaining(save, now);
   const featured = [...MACHINES].reverse().find((machine) => level.level >= machine.levelRequired) ?? MACHINES[0];
+  const holiday = activeHoliday(today);
+  const holidayProduct = holiday ? getProduct(holiday.productId) : undefined;
+  const starter = getProduct('offer.starter');
+  const showHoliday = Boolean(holiday && holidayProduct && !save.ownedOffers.includes(holidayProduct.id));
+  const showStarter = Boolean(starter && !save.ownedOffers.includes(starter.id));
+  const ads = adsLeft(save, today);
+  const [adOpen, setAdOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -40,7 +50,10 @@ export default function LobbyScreen() {
   return (
     <Screen scroll>
       <View style={styles.header}>
-        <Wordmark />
+        <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+          <Wordmark />
+          <VipBadge onPress={() => router.push('/vip')} />
+        </View>
         <View style={{ alignItems: 'flex-end', gap: 6 }}>
           <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
             <Text style={{ color: theme.colors.gold, fontFamily: 'Outfit_600SemiBold' }}>Settings</Text>
@@ -51,7 +64,27 @@ export default function LobbyScreen() {
         </View>
       </View>
 
-      <Card style={{ marginTop: 14 }}>
+      {showHoliday && holiday ? (
+        <Pressable onPress={() => router.push('/shop')} style={{ marginTop: 12 }}>
+          <Card style={{ borderColor: theme.colors.gold }}>
+            <Text style={[styles.kicker, { color: theme.colors.accent }]}>HOLIDAY</Text>
+            <Text style={[styles.bonus, { color: theme.colors.gold }]}>{holiday.name}</Text>
+            <Muted>{holiday.banner}</Muted>
+          </Card>
+        </Pressable>
+      ) : null}
+      {showStarter && starter ? (
+        <Pressable onPress={() => router.push('/shop')} style={{ marginTop: 12 }}>
+          <Card>
+            <Text style={[styles.kicker, { color: theme.colors.gold }]}>FIRST NIGHT · ONCE</Text>
+            <Text style={[styles.bonus, { color: theme.colors.text }]}>{starter.title}</Text>
+            <Muted>{starter.description}</Muted>
+          </Card>
+        </Pressable>
+      ) : null}
+      <View style={{ marginTop: 14 }}>
+      <VipFrame tier={tierOf(save).id}>
+      <Card style={{ marginTop: 0 }}>
         <View style={styles.row}>
           <View>
             <Text style={[styles.kicker, { color: theme.colors.muted }]}>LEVEL {level.level}</Text>
@@ -66,6 +99,8 @@ export default function LobbyScreen() {
           {level.into}/{level.next} XP · {vip.name} VIP
         </Text>
       </Card>
+      </VipFrame>
+      </View>
 
       <Pressable onPress={() => router.push('/draw')} style={{ marginTop: 12 }}>
         <Card>
@@ -115,6 +150,31 @@ export default function LobbyScreen() {
           <Muted>{featured.tagline}</Muted>
         </Card>
       </Pressable>
+      <Pressable
+        onPress={() => {
+          if (ads > 0) setAdOpen((open) => !open);
+        }}
+        style={{ marginTop: 18, alignSelf: 'flex-start' }}
+      >
+        <Text style={{ color: theme.colors.muted, fontFamily: 'Outfit_400Regular', fontSize: 12 }}>
+          {ads > 0 ? `Mock ad · ${formatCoins(AD_REWARD)} coins · ${ads} left today` : 'Ad coins are done for today'}
+        </Text>
+      </Pressable>
+      {adOpen && ads > 0 ? (
+        <View style={{ marginTop: 8 }}>
+          <Muted>A stand-in for a rewarded ad. Nothing is sold. Coins have no cash value.</Muted>
+          <View style={{ marginTop: 8, gap: 8 }}>
+            <GhostButton
+              label={`Close and take ${formatCoins(AD_REWARD)} coins`}
+              onPress={() => {
+                const result = useGame.getState().claimAd();
+                setAdOpen(false);
+                if (result.ok) void playSfx('coin');
+              }}
+            />
+          </View>
+        </View>
+      ) : null}
       <LegalLine />
     </Screen>
   );

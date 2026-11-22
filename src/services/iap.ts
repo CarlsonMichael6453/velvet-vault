@@ -1,4 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { PRODUCTS, type Product } from '@/src/data/products';
+
+const RECEIPTS = 'velvet-vault-mock-receipts';
 
 export type PurchaseResult = {
   ok: boolean;
@@ -17,6 +21,11 @@ export interface IAPService {
   readonly provider: 'mock' | 'revenuecat';
   getProducts(): Promise<Product[]>;
   purchase(productId: string): Promise<PurchaseResult>;
+  /**
+   * Non-consumable product ids the store account already owns.
+   * Callers unlock rooms, themes, styles, and the season pass.
+   * They must not grant coin packs again.
+   */
   restore(): Promise<{ productIds: string[] }>;
 }
 
@@ -33,13 +42,30 @@ export class MockIAPService implements IAPService {
     const product = PRODUCTS.find((item) => item.id === productId);
     if (!product) return { ok: false, productId, error: 'Unknown product.' };
     await wait(700);
+    if (product.type === 'non_consumable') await rememberReceipt(productId);
     return { ok: true, productId, transactionId: `mock_${productId}_${Date.now()}` };
   }
 
   async restore(): Promise<{ productIds: string[] }> {
     await wait(400);
-    return { productIds: [] };
+    return { productIds: await readReceipts() };
   }
+}
+
+async function readReceipts(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(RECEIPTS);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+async function rememberReceipt(productId: string): Promise<void> {
+  const current = await readReceipts();
+  if (current.includes(productId)) return;
+  await AsyncStorage.setItem(RECEIPTS, JSON.stringify([...current, productId]));
 }
 
 export class RevenueCatIAPService implements IAPService {
@@ -54,6 +80,9 @@ export class RevenueCatIAPService implements IAPService {
   }
 
   async restore(): Promise<{ productIds: string[] }> {
+    // Return the non-consumable product ids this store account owns.
+    // The app then calls restoreOwned, which unlocks rooms, themes, styles,
+    // and the season pass without paying coin packs out a second time.
     throw new Error('RevenueCat is not configured in this build.');
   }
 }

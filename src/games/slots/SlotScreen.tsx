@@ -25,6 +25,8 @@ export function SlotScreen() {
   const coins = useGame((state) => state.save.coins);
   const xp = useGame((state) => state.save.xp);
   const reduced = useGame((state) => state.save.settings.reducedMotion);
+  const skipAnimations = useGame((state) => state.save.settings.skipAnimations);
+  const [rush, setRush] = useState(false);
   const freeSpin = useGame((state) => state.save.freeSpin);
   const level = levelFromXp(xp);
   const [betIndex, setBetIndex] = useState(0);
@@ -120,7 +122,7 @@ export function SlotScreen() {
       }
     };
     const leveled = levelFromXp(useGame.getState().save.xp).level > levelBeforeSpin.current;
-    if (tier) setCelebration({ tier, amount: result.totalWin });
+    if (tier && !useGame.getState().save.settings.skipAnimations) setCelebration({ tier, amount: result.totalWin });
     else {
       if (leveled) void considerStoreReview();
       continuePlay();
@@ -157,6 +159,7 @@ export function SlotScreen() {
         return;
       }
     }
+    setRush(false);
     setMessage(null);
     const grid = spinGrid(machine);
     const result = evaluateSpin(machine, grid, spinBet, multiplier);
@@ -224,7 +227,12 @@ export function SlotScreen() {
 
       <Text style={[styles.banner, { color: theme.colors.accent2 }]}>{banner}</Text>
 
-      <View
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Tap to skip the spin"
+        onPress={() => {
+          if (spinning) setRush(true);
+        }}
         style={[
           styles.cabinet,
           {
@@ -246,13 +254,14 @@ export function SlotScreen() {
               spinning={spinning}
               spinId={spinId}
               index={reel}
-              reduced={reduced}
+              reduced={reduced || skipAnimations}
+              rush={rush || skipAnimations}
               hot={hot[reel]}
               onStopped={onReelStopped}
             />
           ))}
         </View>
-      </View>
+      </Pressable>
 
       {message ? <Text style={[styles.message, { color: theme.colors.danger }]}>{message}</Text> : null}
       {locked ? <Muted center>Reach level {machine.levelRequired} to unlock this machine.</Muted> : null}
@@ -330,6 +339,7 @@ function ReelColumn({
   spinId,
   index,
   reduced,
+  rush,
   hot,
   onStopped,
 }: {
@@ -340,6 +350,7 @@ function ReelColumn({
   spinId: number;
   index: number;
   reduced: boolean;
+  rush: boolean;
   hot?: boolean[];
   onStopped: (index: number) => void;
 }) {
@@ -353,6 +364,11 @@ function ReelColumn({
       y.value = end;
       return;
     }
+    if (rush) {
+      y.value = end;
+      finishReel(index);
+      return;
+    }
     y.value = 0;
     y.value = withDelay(
       reduced ? 0 : index * 130,
@@ -360,7 +376,7 @@ function ReelColumn({
         if (finished) runOnJS(finishReel)(index);
       }),
     );
-  }, [spinning, spinId, end, index, reduced, y, finishReel]);
+  }, [spinning, spinId, end, index, reduced, rush, y, finishReel]);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
   const landingStart = Math.max(0, strip.length - 3);
   return (

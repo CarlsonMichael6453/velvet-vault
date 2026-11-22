@@ -60,11 +60,14 @@ export function DrawScreen() {
       }
       return;
     }
+    const skip = useGame.getState().save.settings.skipAnimations;
     const timer = setTimeout(() => {
-      setShowCount((count) => count + 1);
-      void playSfx('ball');
-      buzz('stop');
-    }, 700);
+      setShowCount((count) => (skip ? active.drawnMain.length + 1 : count + 1));
+      if (!skip) {
+        void playSfx('ball');
+        buzz('stop');
+      }
+    }, skip ? 0 : 700);
     return () => clearTimeout(timer);
   }, [active, showCount, done, cost]);
 
@@ -119,8 +122,15 @@ export function DrawScreen() {
       </Card>
 
       {active ? (
-        <View style={{ marginTop: 16 }}>
-          <Text style={[styles.kicker, { color: theme.colors.accent2 }]}>{done ? 'Result' : 'Drawing'}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Tap to skip the draw"
+          onPress={() => {
+            if (!done) setShowCount(active.drawnMain.length + 1);
+          }}
+          style={{ marginTop: 16 }}
+        >
+          <Text style={[styles.kicker, { color: theme.colors.accent2 }]}>{done ? 'Result' : 'Drawing · tap to skip'}</Text>
           <View style={styles.ballRow}>
             {balls.map((ball, index) => (
               <DrawBall key={`${ball.star}-${index}`} value={ball.value} star={ball.star} show={index < showCount} delay={index * 40} />
@@ -148,7 +158,7 @@ export function DrawScreen() {
               />
             </View>
           ) : null}
-        </View>
+        </Pressable>
       ) : (
         <View style={{ marginTop: 16, gap: 12 }}>
           <Text style={[styles.kicker, { color: theme.colors.muted }]}>YOUR NUMBERS {main.length}/{MAIN_PICKS}</Text>

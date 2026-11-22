@@ -1,4 +1,4 @@
-export type ThemeId = 'velvet' | 'midnight' | 'sunset' | 'neon' | 'pharaoh' | 'dragon' | 'ocean' | 'cosmos' | 'diamond';
+export type ThemeId = 'velvet' | 'midnight' | 'sunset' | 'neon' | 'pharaoh' | 'dragon' | 'ocean' | 'cosmos' | 'diamond' | 'hearth';
 
 export type ParticleKind = 'dust' | 'neon' | 'sand' | 'ember' | 'bubble' | 'star' | 'sparkle' | 'warm' | 'snow' | 'petal' | 'bat';
 
@@ -326,6 +326,37 @@ export const THEMES: Theme[] = [
       foil2: '#8aa0b8',
       reel: '#101820',
       ink: '#102033',
+    },
+  },
+  {
+    id: 'hearth',
+    name: 'Hearth & Holly',
+    tagline: 'A winter room. Snow at the glass, holly on the felt, and a low fire.',
+    premium: true,
+    coinPrice: 0,
+    iapProductId: 'holiday.hearth',
+    music: 'midnight',
+    particle: 'snow',
+    winStyle: 'gold',
+    lavish: true,
+    colors: {
+      ...velvetColors,
+      bg0: '#0c1612',
+      bg1: '#163028',
+      bg2: '#3a1818',
+      orb1: 'rgba(196, 40, 54, 0.4)',
+      orb2: 'rgba(240, 215, 140, 0.35)',
+      orb3: 'rgba(220, 236, 244, 0.22)',
+      card: 'rgba(12, 24, 20, 0.9)',
+      cardBorder: 'rgba(240, 215, 140, 0.45)',
+      gold: '#f3e2b8',
+      goldDeep: '#8f2d32',
+      accent: '#e23b4a',
+      accent2: '#f7efe0',
+      foil1: '#f4fbff',
+      foil2: '#6e8a84',
+      reel: '#0c1612',
+      ink: '#1a100c',
     },
   },
 ];

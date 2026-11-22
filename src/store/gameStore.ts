@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { getProduct } from '@/src/data/products';
+import { iap } from '@/src/services/iap';
 import { levelFromXp } from '@/src/data/economy';
 import type { DrawResult, Ticket } from '@/src/games/lottery/draw';
 import { MACHINES } from '@/src/games/slots/machines';
@@ -17,14 +18,17 @@ import {
   buyScratch,
   buyStyleWithCoins,
   buyThemeWithCoins,
+  claimAd,
   claimDaily,
   claimHourly,
   claimMission,
+  claimSeasonDay,
   confirmAge,
   creditSlotWin,
   freshSave,
   grantProduct,
   hydrateSave,
+  restoreOwned,
   purchaseDraw,
   recordFreeSpin,
   resetSave,
@@ -68,6 +72,10 @@ type Store = {
   buyStyleWithCoins: (styleId: string) => Result;
   applyStyle: (styleId: string) => Result;
   grantProduct: (productId: string) => Result;
+  restorePurchases: () => Promise<{ ok: boolean; count: number; message: string }>;
+  claimAd: () => Result;
+  claimSeasonDay: (day: number, track: 'free' | 'premium') => Result;
+  replaceSave: (save: SaveState) => void;
   resetProgress: () => void;
   bumpSession: () => void;
   markReviewPrompted: (day: string) => void;
@@ -86,22 +94,23 @@ export const useGame = create<Store>()(
     (set, get) => {
       const commit = (result: Result, extraNotices: Notice[] = []): Result => {
         if (!result.ok) return result;
+        const stamped: Result = { ...result, save: { ...result.save, updatedAt: Date.now() } };
         const beforeLevelMachines = new Set(
           MACHINES.filter((machine) => machine.levelRequired <= levelFromXp(get().save.xp).level).map((machine) => machine.id),
         );
         set((state) => ({
-          save: result.save,
-          notices: withNotices(state.notices, [...result.notices, ...extraNotices]),
+          save: stamped.save,
+          notices: withNotices(state.notices, [...stamped.notices, ...extraNotices]),
         }));
         const unlocked = MACHINES.filter(
-          (machine) => machine.levelRequired <= levelFromXp(result.save.xp).level && !beforeLevelMachines.has(machine.id),
+          (machine) => machine.levelRequired <= levelFromXp(stamped.save.xp).level && !beforeLevelMachines.has(machine.id),
         );
         if (unlocked.length > 0) {
           set((state) => ({
             notices: withNotices(state.notices, unlocked.map((machine) => ({ title: `${machine.name} unlocked`, detail: machine.tagline }))),
           }));
         }
-        return result;
+        return stamped;
       };
 
       return {
@@ -111,7 +120,10 @@ export const useGame = create<Store>()(
         setHydrated: () => set({ hydrated: true }),
         dismissNotice: (id) => set((state) => ({ notices: state.notices.filter((notice) => notice.id !== id) })),
         confirmAge: () => commit(confirmAge(get().save)),
-        updateSettings: (patch) => set((state) => ({ save: { ...state.save, settings: { ...state.save.settings, ...patch } } })),
+        updateSettings: (patch) =>
+          set((state) => ({
+            save: { ...state.save, updatedAt: Date.now(), settings: { ...state.save.settings, ...patch } },
+          })),
         wagerSpin: (machineId, bet) => {
           const machine = MACHINES.find((item) => item.id === machineId);
           if (!machine) return { ok: false, save: get().save, notices: [], error: 'That machine is not on the floor.' };
@@ -171,9 +183,37 @@ export const useGame = create<Store>()(
           if (!product) return { ok: false, save: get().save, notices: [], error: 'Unknown product.' };
           return commit(grantProduct(get().save, product));
         },
+        restorePurchases: async () => {
+          try {
+            const { productIds } = await iap.restore();
+            let save = get().save;
+            let count = 0;
+            for (const id of productIds) {
+              const product = getProduct(id);
+              if (!product) continue;
+              const restored = restoreOwned(save, product);
+              if (!restored.changed) continue;
+              save = { ...restored.save, updatedAt: Date.now() };
+              count += 1;
+            }
+            if (count > 0) set({ save });
+            return {
+              ok: true,
+              count,
+              message: count
+                ? `Restored ${count} unlock${count === 1 ? '' : 's'}. Coin packs are not paid out again.`
+                : 'Nothing new to restore. Coin packs stay in the store and are not paid out again.',
+            };
+          } catch (error) {
+            return { ok: false, count: 0, message: error instanceof Error ? error.message : 'Restore failed.' };
+          }
+        },
+        claimAd: () => commit(claimAd(get().save)),
+        claimSeasonDay: (day, track) => commit(claimSeasonDay(get().save, day, track)),
+        replaceSave: (save) => set({ save: hydrateSave(save) }),
         resetProgress: () =>
           set((state) => ({
-            save: { ...resetSave(), sessions: state.save.sessions, reviewPromptOn: state.save.reviewPromptOn },
+            save: { ...resetSave(), sessions: state.save.sessions, reviewPromptOn: state.save.reviewPromptOn, updatedAt: Date.now() },
             notices: [],
           })),
         bumpSession: () => set((state) => ({ save: { ...state.save, sessions: state.save.sessions + 1 } })),

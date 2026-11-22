@@ -16,6 +16,7 @@ import { ACHIEVEMENTS, MISSION_KEYS } from '@/src/data/progress';
 import type { Product } from '@/src/data/products';
 import { scoreTickets, type DrawResult, type Ticket } from '@/src/games/lottery/draw';
 import { getScratchTicket } from '@/src/games/scratch/tickets';
+import { AD_DAILY_CAP, AD_REWARD, SEASON, seasonDayIndex, seasonReward } from '@/src/data/live';
 import { formatCoins, shiftDay, todayKey } from '@/src/lib/format';
 import type { Clock, Notice, PendingDraw, PendingScratch, PendingWheel, SaveState, Stats } from '@/src/store/types';
 import { emptyStats } from '@/src/store/types';
@@ -48,7 +49,7 @@ export function freshSave(): SaveState {
     activeBackground: 'hall',
     ownedStyles: ['classic', 'bubbly', 'winter'],
     activeStyle: 'classic',
-    settings: { sound: true, music: true, haptics: true, reducedMotion: false },
+    settings: { sound: true, music: true, haptics: true, reducedMotion: false, skipAnimations: false },
     lastDaily: null,
     streak: 0,
     bestStreak: 0,
@@ -64,6 +65,13 @@ export function freshSave(): SaveState {
     pendingWheel: null,
     sessions: 0,
     reviewPromptOn: null,
+    updatedAt: 0,
+    ownedOffers: [],
+    adDay: null,
+    adClaims: 0,
+    seasonPremium: false,
+    seasonFreeClaimed: [],
+    seasonPremiumClaimed: [],
   };
 }
 
@@ -86,7 +94,19 @@ export function hydrateSave(raw: Partial<SaveState> | undefined): SaveState {
     activeStyle: raw.activeStyle || base.activeStyle,
     sessions: typeof raw.sessions === 'number' && raw.sessions >= 0 ? raw.sessions : base.sessions,
     reviewPromptOn: typeof raw.reviewPromptOn === 'string' ? raw.reviewPromptOn : null,
+    updatedAt: typeof raw.updatedAt === 'number' && raw.updatedAt >= 0 ? raw.updatedAt : base.updatedAt,
+    ownedOffers: Array.isArray(raw.ownedOffers) ? raw.ownedOffers.filter((id) => typeof id === 'string') : base.ownedOffers,
+    adDay: typeof raw.adDay === 'string' ? raw.adDay : null,
+    adClaims: typeof raw.adClaims === 'number' && raw.adClaims >= 0 ? raw.adClaims : 0,
+    seasonPremium: raw.seasonPremium === true,
+    seasonFreeClaimed: numberList(raw.seasonFreeClaimed),
+    seasonPremiumClaimed: numberList(raw.seasonPremiumClaimed),
   };
+}
+
+function numberList(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => typeof item === 'number' && Number.isFinite(item));
 }
 
 export function vipFor(save: SaveState) {
@@ -503,9 +523,18 @@ export function applyStyle(save: SaveState, item: CosmeticOffer): Result {
 }
 
 export function grantProduct(save: SaveState, product: Product): Result {
-  if (product.themeId && save.ownedThemes.includes(product.themeId)) return fail(save, 'You already own this theme.');
-  if (product.backgroundId && save.ownedBackgrounds.includes(product.backgroundId)) return fail(save, 'You already own this backdrop.');
-  if (product.styleId && save.ownedStyles.includes(product.styleId)) return fail(save, 'You already own this style.');
+  const offers = save.ownedOffers ?? [];
+  if (product.oneTime && offers.includes(product.id)) return fail(save, 'That offer was already used.');
+  const themeNew = Boolean(product.themeId && !save.ownedThemes.includes(product.themeId));
+  const backgroundNew = Boolean(product.backgroundId && !save.ownedBackgrounds.includes(product.backgroundId));
+  const styleNew = Boolean(product.styleId && !save.ownedStyles.includes(product.styleId));
+  const cosmeticAsked = Boolean(product.themeId || product.backgroundId || product.styleId);
+  const cosmeticNew = themeNew || backgroundNew || styleNew;
+  if (!product.coins && !product.seasonPass && cosmeticAsked && !cosmeticNew) {
+    if (product.themeId) return fail(save, 'You already own this theme.');
+    if (product.backgroundId) return fail(save, 'You already own this backdrop.');
+    return fail(save, 'You already own this style.');
+  }
   let next = save;
   const notices: Notice[] = [];
   if (product.coins) {
@@ -513,22 +542,90 @@ export function grantProduct(save: SaveState, product: Product): Result {
       { ...next, coins: next.coins + product.coins, lifetimePurchased: next.lifetimePurchased + product.coins },
       { packsBought: next.stats.packsBought + 1 },
     );
-    notices.push({ title: 'Coins added', detail: `+${formatCoins(product.coins)} Velvet Coins from the mock store.` });
+    notices.push({ title: 'Coins added', detail: `+${formatCoins(product.coins)} Velvet Coins from the mock store. They have no cash value.` });
   }
-  if (product.themeId) {
+  if (themeNew && product.themeId) {
     next = withStats(
       { ...next, ownedThemes: [...next.ownedThemes, product.themeId], activeTheme: product.themeId },
       { themesBought: next.stats.themesBought + 1 },
     );
     notices.push({ title: product.title, detail: 'Theme unlocked. Cosmetic only.' });
   }
-  if (product.backgroundId) {
+  if (backgroundNew && product.backgroundId) {
     next = { ...next, ownedBackgrounds: [...next.ownedBackgrounds, product.backgroundId], activeBackground: product.backgroundId };
     notices.push({ title: product.title, detail: 'Backdrop unlocked. Cosmetic only.' });
   }
-  if (product.styleId) {
+  if (styleNew && product.styleId) {
     next = { ...next, ownedStyles: [...next.ownedStyles, product.styleId], activeStyle: product.styleId };
     notices.push({ title: product.title, detail: 'Game style unlocked. Cosmetic only.' });
   }
+  if (product.seasonPass) {
+    next = { ...next, seasonPremium: true };
+    notices.push({ title: 'Premium track open', detail: `${SEASON.name} premium rewards can be claimed. Coins still have no cash value.` });
+  }
+  if (product.oneTime) next = { ...next, ownedOffers: [...(next.ownedOffers ?? []), product.id] };
   return finalize(save, next, notices, product.coins ?? 0);
+}
+
+/** Unlock rooms, themes, styles, and the season pass again. Does not pay coins a second time. */
+export function restoreOwned(save: SaveState, product: Product): { save: SaveState; changed: boolean } {
+  if (product.type !== 'non_consumable') return { save, changed: false };
+  let next = save;
+  let changed = false;
+  if (product.themeId && !next.ownedThemes.includes(product.themeId)) {
+    next = { ...next, ownedThemes: [...next.ownedThemes, product.themeId] };
+    changed = true;
+  }
+  if (product.backgroundId && !next.ownedBackgrounds.includes(product.backgroundId)) {
+    next = { ...next, ownedBackgrounds: [...next.ownedBackgrounds, product.backgroundId] };
+    changed = true;
+  }
+  if (product.styleId && !next.ownedStyles.includes(product.styleId)) {
+    next = { ...next, ownedStyles: [...next.ownedStyles, product.styleId] };
+    changed = true;
+  }
+  if (product.seasonPass && !next.seasonPremium) {
+    next = { ...next, seasonPremium: true };
+    changed = true;
+  }
+  const offers = next.ownedOffers ?? [];
+  if (product.oneTime && !offers.includes(product.id)) {
+    next = { ...next, ownedOffers: [...offers, product.id] };
+    changed = true;
+  }
+  return { save: next, changed };
+}
+
+export function claimAd(save: SaveState, clock = liveClock()): Result {
+  const sameDay = save.adDay === clock.today;
+  const count = sameDay ? save.adClaims : 0;
+  if (count >= AD_DAILY_CAP) return fail(save, 'That is all the ad coins for today.');
+  const next: SaveState = {
+    ...save,
+    coins: save.coins + AD_REWARD,
+    adDay: clock.today,
+    adClaims: count + 1,
+  };
+  return finalize(save, next, [{ title: 'Ad coins', detail: `+${formatCoins(AD_REWARD)} Velvet Coins. They have no cash value.` }], AD_REWARD);
+}
+
+export function adsLeft(save: SaveState, today: string): number {
+  const count = save.adDay === today ? save.adClaims : 0;
+  return Math.max(0, AD_DAILY_CAP - count);
+}
+
+export function claimSeasonDay(save: SaveState, day: number, track: 'free' | 'premium', clock = liveClock()): Result {
+  const open = seasonDayIndex(clock.today);
+  if (open == null || day < 1 || day > open || day > SEASON.days) return fail(save, 'That day is not open.');
+  if (track === 'premium' && !save.seasonPremium) return fail(save, 'The premium track is still locked.');
+  const claimed = track === 'free' ? save.seasonFreeClaimed : save.seasonPremiumClaimed;
+  if (claimed.includes(day)) return fail(save, 'That day is already claimed.');
+  const amount = seasonReward(day, track);
+  const next: SaveState = {
+    ...save,
+    coins: save.coins + amount,
+    seasonFreeClaimed: track === 'free' ? [...save.seasonFreeClaimed, day] : save.seasonFreeClaimed,
+    seasonPremiumClaimed: track === 'premium' ? [...save.seasonPremiumClaimed, day] : save.seasonPremiumClaimed,
+  };
+  return finalize(save, next, [{ title: `${SEASON.name} day ${day}`, detail: `+${formatCoins(amount)} coins. No cash value.` }], amount);
 }

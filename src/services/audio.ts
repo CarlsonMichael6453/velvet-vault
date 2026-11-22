@@ -58,6 +58,22 @@ function flavored(name: SfxName): SfxName {
   return name;
 }
 
+const CELEBRATION: SfxName[][] = [
+  ['coin'],
+  ['coin', 'win'],
+  ['win', 'coin'],
+  ['fanfare', 'coin'],
+  ['fanfare', 'bigwin'],
+  ['megawin', 'fanfare', 'coin'],
+];
+
+export function playCelebration(tier: number): void {
+  const cues = CELEBRATION[Math.max(0, Math.min(CELEBRATION.length - 1, tier))] ?? CELEBRATION[0];
+  cues.forEach((cue, index) => {
+    setTimeout(() => void playSfx(cue), index * 160);
+  });
+}
+
 export async function playSfx(name: SfxName): Promise<void> {
   const cue = flavored(name);
   if (!useGame.getState().save.settings.sound) return;

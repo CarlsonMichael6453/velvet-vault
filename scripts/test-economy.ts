@@ -221,7 +221,7 @@ function testCatalog() {
     else assert.ok(premium != null && premium > 0, product.id);
   }
 
-  const rooms = THEMES.filter((theme) => theme.premium)
+  const rooms = THEMES.filter((theme) => theme.premium && theme.coinPrice > 0)
     .map((theme) => {
       const product = PRODUCTS.find((item) => item.themeId === theme.id);
       assert.ok(product, `${theme.id} needs a store product`);
