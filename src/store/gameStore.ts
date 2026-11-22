@@ -28,7 +28,9 @@ import {
   freshSave,
   grantProduct,
   hydrateSave,
+  liveClock,
   restoreOwned,
+  restoreSeasonReceipt,
   purchaseDraw,
   recordFreeSpin,
   resetSave,
@@ -188,10 +190,17 @@ export const useGame = create<Store>()(
             const { productIds } = await iap.restore();
             let save = get().save;
             let count = 0;
+            const today = liveClock().today;
             for (const id of productIds) {
-              const product = getProduct(id);
-              if (!product) continue;
-              const restored = restoreOwned(save, product);
+              const seasonReceipt = /^season\.pass@(\d{4}-\d{2})$/.exec(id);
+              const restored = seasonReceipt
+                ? restoreSeasonReceipt(save, seasonReceipt[1], today)
+                : id === 'season.velvet'
+                  ? restoreSeasonReceipt(save, '2026-11', today)
+                  : (() => {
+                      const product = getProduct(id);
+                      return product ? restoreOwned(save, product) : { save, changed: false };
+                    })();
               if (!restored.changed) continue;
               save = { ...restored.save, updatedAt: Date.now() };
               count += 1;

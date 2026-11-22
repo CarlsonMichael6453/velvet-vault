@@ -6,8 +6,9 @@ import { Particles } from '@/src/components/fx';
 import { BackgroundScene } from '@/src/components/scenes';
 import { SymbolTile, CoinPill, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
 import { levelFromXp } from '@/src/data/economy';
+import { SEASON_STYLE_IDS, seasonFor } from '@/src/data/live';
 import { getProduct } from '@/src/data/products';
-import { formatCoins } from '@/src/lib/format';
+import { formatCoins, todayKey } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
 import { iap } from '@/src/services/iap';
 import { useGame } from '@/src/store/gameStore';
@@ -131,16 +132,24 @@ export default function ThemesScreen() {
         : null}
 
       {tab === 'styles'
-        ? STYLES.map((item) => (
+        ? STYLES.map((item) => {
+            const month = seasonFor(todayKey());
+            const seasonal = SEASON_STYLE_IDS.has(item.id);
+            const thisMonth = seasonal && item.id === month.styleId;
+            const passOpen = save.seasonId === month.id && save.seasonPremium;
+            return (
             <View key={item.id} style={[styles.card, { borderColor: save.activeStyle === item.id ? theme.colors.gold : theme.colors.cardBorder }]}>
               <StylePreview item={item} />
+              {seasonal && !save.ownedStyles.includes(item.id) && !thisMonth ? (
+                <Text style={[styles.message, { color: theme.colors.muted, paddingHorizontal: 12 }]}>Another month’s style. Owned seasons stay in your collection.</Text>
+              ) : null}
               <Actions
                 owned={owns(save.ownedStyles, item, level)}
                 active={save.activeStyle === item.id}
                 coinPrice={item.coinPrice}
                 levelRequired={item.levelRequired}
                 level={level}
-                iapPrice={storePrice(item.iapProductId)}
+                iapPrice={thisMonth && !passOpen ? storePrice('season.pass') : seasonal ? undefined : storePrice(item.iapProductId)}
                 busy={busy === item.iapProductId}
                 onEquip={() => {
                   const result = useGame.getState().applyStyle(item.id);
@@ -151,7 +160,8 @@ export default function ThemesScreen() {
                 onIap={() => item.iapProductId && void buyIap(item.iapProductId, item.name)}
               />
             </View>
-          ))
+            );
+          })
         : null}
       <LegalLine />
     </Screen>

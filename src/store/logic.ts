@@ -16,7 +16,7 @@ import { ACHIEVEMENTS, MISSION_KEYS } from '@/src/data/progress';
 import type { Product } from '@/src/data/products';
 import { scoreTickets, type DrawResult, type Ticket } from '@/src/games/lottery/draw';
 import { getScratchTicket } from '@/src/games/scratch/tickets';
-import { AD_DAILY_CAP, AD_REWARD, SEASON, seasonDayIndex, seasonReward } from '@/src/data/live';
+import { AD_DAILY_CAP, AD_REWARD, seasonFor, seasonById, seasonPassKey, seasonReward } from '@/src/data/live';
 import { formatCoins, shiftDay, todayKey } from '@/src/lib/format';
 import type { Clock, Notice, PendingDraw, PendingScratch, PendingWheel, SaveState, Stats } from '@/src/store/types';
 import { emptyStats } from '@/src/store/types';
@@ -69,6 +69,7 @@ export function freshSave(): SaveState {
     ownedOffers: [],
     adDay: null,
     adClaims: 0,
+    seasonId: null,
     seasonPremium: false,
     seasonFreeClaimed: [],
     seasonPremiumClaimed: [],
@@ -98,6 +99,7 @@ export function hydrateSave(raw: Partial<SaveState> | undefined): SaveState {
     ownedOffers: Array.isArray(raw.ownedOffers) ? raw.ownedOffers.filter((id) => typeof id === 'string') : base.ownedOffers,
     adDay: typeof raw.adDay === 'string' ? raw.adDay : null,
     adClaims: typeof raw.adClaims === 'number' && raw.adClaims >= 0 ? raw.adClaims : 0,
+    seasonId: typeof raw.seasonId === 'string' ? raw.seasonId : raw.seasonPremium === true ? '2026-11' : null,
     seasonPremium: raw.seasonPremium === true,
     seasonFreeClaimed: numberList(raw.seasonFreeClaimed),
     seasonPremiumClaimed: numberList(raw.seasonPremiumClaimed),
@@ -522,9 +524,12 @@ export function applyStyle(save: SaveState, item: CosmeticOffer): Result {
   return equipCosmetic(save, item, save.ownedStyles, (ownedStyles) => ({ ...save, ownedStyles, activeStyle: item.id }), 'style');
 }
 
-export function grantProduct(save: SaveState, product: Product): Result {
+export function grantProduct(save: SaveState, product: Product, clock = liveClock()): Result {
   const offers = save.ownedOffers ?? [];
+  const season = product.seasonPass ? seasonFor(clock.today) : null;
+  const seasonKey = season ? seasonPassKey(season.id) : '';
   if (product.oneTime && offers.includes(product.id)) return fail(save, 'That offer was already used.');
+  if (season && offers.includes(seasonKey)) return fail(save, 'You already have this month’s pass.');
   const themeNew = Boolean(product.themeId && !save.ownedThemes.includes(product.themeId));
   const backgroundNew = Boolean(product.backgroundId && !save.ownedBackgrounds.includes(product.backgroundId));
   const styleNew = Boolean(product.styleId && !save.ownedStyles.includes(product.styleId));
@@ -559,9 +564,21 @@ export function grantProduct(save: SaveState, product: Product): Result {
     next = { ...next, ownedStyles: [...next.ownedStyles, product.styleId], activeStyle: product.styleId };
     notices.push({ title: product.title, detail: 'Game style unlocked. Cosmetic only.' });
   }
-  if (product.seasonPass) {
-    next = { ...next, seasonPremium: true };
-    notices.push({ title: 'Premium track open', detail: `${SEASON.name} premium rewards can be claimed. Coins still have no cash value.` });
+  if (season) {
+    const styleOwned = next.ownedStyles.includes(season.styleId);
+    if (!styleOwned) {
+      next = { ...next, ownedStyles: [...next.ownedStyles, season.styleId], activeStyle: season.styleId };
+      notices.push({ title: season.name, detail: 'This month’s style is yours to keep. Cosmetic only.' });
+    }
+    next = {
+      ...next,
+      seasonId: season.id,
+      seasonPremium: true,
+      seasonFreeClaimed: save.seasonId === season.id ? next.seasonFreeClaimed : [],
+      seasonPremiumClaimed: save.seasonId === season.id ? next.seasonPremiumClaimed : [],
+      ownedOffers: [...(next.ownedOffers ?? []), seasonKey],
+    };
+    notices.push({ title: 'Premium track open', detail: `${season.name} can be claimed this month. Next month is a new pass. Coins have no cash value.` });
   }
   if (product.oneTime) next = { ...next, ownedOffers: [...(next.ownedOffers ?? []), product.id] };
   return finalize(save, next, notices, product.coins ?? 0);
@@ -584,13 +601,32 @@ export function restoreOwned(save: SaveState, product: Product): { save: SaveSta
     next = { ...next, ownedStyles: [...next.ownedStyles, product.styleId] };
     changed = true;
   }
-  if (product.seasonPass && !next.seasonPremium) {
-    next = { ...next, seasonPremium: true };
-    changed = true;
-  }
   const offers = next.ownedOffers ?? [];
   if (product.oneTime && !offers.includes(product.id)) {
     next = { ...next, ownedOffers: [...offers, product.id] };
+    changed = true;
+  }
+  return { save: next, changed };
+}
+
+/** Restore one month’s pass. The style stays. Premium opens only if that month is current. */
+export function restoreSeasonReceipt(save: SaveState, seasonId: string, today: string): { save: SaveState; changed: boolean } {
+  const season = seasonById(seasonId);
+  if (!season) return { save, changed: false };
+  let next = save;
+  let changed = false;
+  if (!next.ownedStyles.includes(season.styleId)) {
+    next = { ...next, ownedStyles: [...next.ownedStyles, season.styleId] };
+    changed = true;
+  }
+  const key = seasonPassKey(season.id);
+  if (!(next.ownedOffers ?? []).includes(key)) {
+    next = { ...next, ownedOffers: [...(next.ownedOffers ?? []), key] };
+    changed = true;
+  }
+  const current = seasonFor(today);
+  if (season.id === current.id && !(next.seasonId === season.id && next.seasonPremium)) {
+    next = { ...next, seasonId: season.id, seasonPremium: true };
     changed = true;
   }
   return { save: next, changed };
@@ -615,17 +651,21 @@ export function adsLeft(save: SaveState, today: string): number {
 }
 
 export function claimSeasonDay(save: SaveState, day: number, track: 'free' | 'premium', clock = liveClock()): Result {
-  const open = seasonDayIndex(clock.today);
-  if (open == null || day < 1 || day > open || day > SEASON.days) return fail(save, 'That day is not open.');
-  if (track === 'premium' && !save.seasonPremium) return fail(save, 'The premium track is still locked.');
-  const claimed = track === 'free' ? save.seasonFreeClaimed : save.seasonPremiumClaimed;
+  const season = seasonFor(clock.today);
+  const aligned: SaveState =
+    save.seasonId === season.id
+      ? save
+      : { ...save, seasonId: season.id, seasonPremium: false, seasonFreeClaimed: [], seasonPremiumClaimed: [] };
+  if (season.day == null || day < 1 || day > season.day || day > season.days) return fail(save, 'That day is not open.');
+  if (track === 'premium' && !aligned.seasonPremium) return fail(save, 'The premium track is still locked.');
+  const claimed = track === 'free' ? aligned.seasonFreeClaimed : aligned.seasonPremiumClaimed;
   if (claimed.includes(day)) return fail(save, 'That day is already claimed.');
-  const amount = seasonReward(day, track);
+  const amount = seasonReward(day, track, season.days);
   const next: SaveState = {
-    ...save,
-    coins: save.coins + amount,
-    seasonFreeClaimed: track === 'free' ? [...save.seasonFreeClaimed, day] : save.seasonFreeClaimed,
-    seasonPremiumClaimed: track === 'premium' ? [...save.seasonPremiumClaimed, day] : save.seasonPremiumClaimed,
+    ...aligned,
+    coins: aligned.coins + amount,
+    seasonFreeClaimed: track === 'free' ? [...aligned.seasonFreeClaimed, day] : aligned.seasonFreeClaimed,
+    seasonPremiumClaimed: track === 'premium' ? [...aligned.seasonPremiumClaimed, day] : aligned.seasonPremiumClaimed,
   };
-  return finalize(save, next, [{ title: `${SEASON.name} day ${day}`, detail: `+${formatCoins(amount)} coins. No cash value.` }], amount);
+  return finalize(save, next, [{ title: `${season.name} day ${day}`, detail: `+${formatCoins(amount)} coins. No cash value.` }], amount);
 }

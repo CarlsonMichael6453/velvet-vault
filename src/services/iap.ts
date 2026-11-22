@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { seasonFor } from '@/src/data/live';
 import { PRODUCTS, type Product } from '@/src/data/products';
+import { todayKey } from '@/src/lib/format';
 
 const RECEIPTS = 'velvet-vault-mock-receipts';
 
@@ -42,7 +44,8 @@ export class MockIAPService implements IAPService {
     const product = PRODUCTS.find((item) => item.id === productId);
     if (!product) return { ok: false, productId, error: 'Unknown product.' };
     await wait(700);
-    if (product.type === 'non_consumable') await rememberReceipt(productId);
+    if (product.seasonPass) await rememberReceipt(`${product.id}@${seasonFor(todayKey()).id}`);
+    else if (product.type === 'non_consumable') await rememberReceipt(productId);
     return { ok: true, productId, transactionId: `mock_${productId}_${Date.now()}` };
   }
 

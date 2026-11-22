@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PurchaseCelebration, Shimmer } from '@/src/components/celebration';
 import { Card, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
 import { VipBadge, VipFrame, tierOf } from '@/src/components/vip';
-import { activeHoliday } from '@/src/data/live';
+import { activeHoliday, seasonFor } from '@/src/data/live';
 import { COIN_PRODUCTS, celebrationTier, coinPackPremium, getProduct, type Product } from '@/src/data/products';
 import { formatCoins, todayKey } from '@/src/lib/format';
 import { playCelebration } from '@/src/services/audio';
@@ -94,7 +94,11 @@ export default function ShopScreen() {
       ) : null}
       <Card style={{ marginTop: 12 }}>
         <Text style={[styles.name, { color: theme.colors.text }]}>Velvet Season</Text>
-        <Muted>{save.seasonPremium ? 'Premium track is open.' : 'Free track for everyone. Premium track is $4.99 and includes a style.'}</Muted>
+        <Muted>
+          {save.seasonId === seasonFor(todayKey()).id && save.seasonPremium
+            ? `${seasonFor(todayKey()).name} premium track is open.`
+            : `${seasonFor(todayKey()).name} is this month. Free track for everyone. The pass is $4.99 and includes its style.`}
+        </Muted>
         <View style={{ marginTop: 8 }}>
           <GhostButton label="Open the season" onPress={() => router.push('/season')} />
         </View>

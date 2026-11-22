@@ -14,7 +14,12 @@ export type StyleId =
   | 'ocean'
   | 'space'
   | 'west'
-  | 'gilded';
+  | 'gilded'
+  | 'frostline'
+  | 'rosecourt'
+  | 'inkwell'
+  | 'marigold'
+  | 'tideglass';
 
 export type FoilMark = 'none' | 'bubble' | 'flake' | 'pixel' | 'stripe' | 'star';
 
@@ -480,7 +485,7 @@ export const STYLES: GameStyle[] = [
     tagline: 'The season style. A heavier gold rim, sparkle in the cabinet, and a fanfare on every hit.',
     coinPrice: 0,
     levelRequired: 0,
-    iapProductId: 'season.velvet',
+    iapProductId: 'season.pass',
     displayFont: 'Cinzel_900Black',
     displayScale: 0.9,
     plateRadius: 0.14,
@@ -508,6 +513,118 @@ export const STYLES: GameStyle[] = [
     spinCue: 'spin',
   },
 ];
+
+function seasonLook(
+  partial: Pick<GameStyle, 'id' | 'name' | 'tagline' | 'symbolFrom' | 'symbolTo' | 'symbolInk' | 'accent' | 'buttonFrom' | 'buttonTo' | 'reel' | 'foil' | 'ball' | 'particle' | 'music'> &
+    Partial<Pick<GameStyle, 'frost' | 'foilMark'>>,
+): GameStyle {
+  return {
+    coinPrice: 0,
+    levelRequired: 0,
+    iapProductId: 'season.pass',
+    displayFont: 'Cinzel_700Bold',
+    displayScale: 0.92,
+    plateRadius: 0.16,
+    plateBorder: 3,
+    gloss: true,
+    frost: false,
+    pixel: false,
+    buttonRadius: 12,
+    frameRadius: 12,
+    frameWidth: 3,
+    foilMark: 'star',
+    ballRadius: 20,
+    winCue: 'fanfare',
+    spinCue: 'spin',
+    ...partial,
+  };
+}
+
+STYLES.push(
+  seasonLook({
+    id: 'frostline',
+    name: 'Frost Line',
+    tagline: 'December’s style. Ice foil, a pale button, and snow in the cabinet.',
+    symbolFrom: '#d7f1ff',
+    symbolTo: '#6aa4c8',
+    symbolInk: '#102838',
+    accent: '#f4fbff',
+    buttonFrom: '#e7f6ff',
+    buttonTo: '#7eb6d9',
+    reel: '#0d2433',
+    foil: ['#f4fbff', '#b7d4e4'],
+    ball: '#d7f1ff',
+    particle: 'snow',
+    music: 'midnight',
+    frost: true,
+    foilMark: 'flake',
+  }),
+  seasonLook({
+    id: 'rosecourt',
+    name: 'Rose Court',
+    tagline: 'January’s style. Rose felt, a soft gloss, and a fanfare.',
+    symbolFrom: '#ffd0e0',
+    symbolTo: '#e23b6a',
+    symbolInk: '#2a1018',
+    accent: '#ffd0e0',
+    buttonFrom: '#ffb3c7',
+    buttonTo: '#a8324e',
+    reel: '#2a1018',
+    foil: ['#ffe4ec', '#c46b84'],
+    ball: '#ffb3c7',
+    particle: 'petal',
+    music: 'velvet',
+  }),
+  seasonLook({
+    id: 'inkwell',
+    name: 'Inkwell',
+    tagline: 'February’s style. Black lacquer, a thin gold edge, and a quiet win.',
+    symbolFrom: '#1a1c24',
+    symbolTo: '#c9a36a',
+    symbolInk: '#f7efe0',
+    accent: '#e7c98a',
+    buttonFrom: '#e7c98a',
+    buttonTo: '#3a3428',
+    reel: '#0c0e14',
+    foil: ['#2a2c34', '#8a7350'],
+    ball: '#e7c98a',
+    particle: 'dust',
+    music: 'midnight',
+  }),
+  seasonLook({
+    id: 'marigold',
+    name: 'Marigold',
+    tagline: 'March’s style. Warm tiles and a shoreline sting.',
+    symbolFrom: '#ffd7a1',
+    symbolTo: '#e07a3d',
+    symbolInk: '#2a140c',
+    accent: '#ffe7a0',
+    buttonFrom: '#ffb089',
+    buttonTo: '#c2543a',
+    reel: '#2a140c',
+    foil: ['#ffe1c2', '#e2b657'],
+    ball: '#ffb089',
+    particle: 'warm',
+    music: 'sunset',
+  }),
+  seasonLook({
+    id: 'tideglass',
+    name: 'Tideglass',
+    tagline: 'April’s style. Tide-glass tiles and bubbles in the cabinet.',
+    symbolFrom: '#0d4a5c',
+    symbolTo: '#7ad7ff',
+    symbolInk: '#e9fffb',
+    accent: '#b7fff2',
+    buttonFrom: '#7ad7ff',
+    buttonTo: '#146078',
+    reel: '#062833',
+    foil: ['#d6f6ff', '#5aa8c4'],
+    ball: '#7ad7ff',
+    particle: 'bubble',
+    music: 'ocean',
+    foilMark: 'bubble',
+  }),
+);
 
 export function getStyle(id: string): GameStyle {
   return STYLES.find((item) => item.id === id) ?? STYLES[0];

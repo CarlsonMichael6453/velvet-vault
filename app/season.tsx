@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PurchaseCelebration } from '@/src/components/celebration';
 import { Card, Display, GhostButton, GoldButton, LegalLine, Muted, Screen } from '@/src/components/ui';
 import { celebrationTier, getProduct } from '@/src/data/products';
-import { SEASON, seasonDayIndex, seasonReward } from '@/src/data/live';
+import { seasonFor, seasonPassKey, seasonReward } from '@/src/data/live';
 import { formatCoins, todayKey } from '@/src/lib/format';
 import { playSfx } from '@/src/services/audio';
 import { iap } from '@/src/services/iap';
@@ -15,8 +15,12 @@ export default function SeasonScreen() {
   const theme = useTheme();
   const save = useGame((state) => state.save);
   const today = todayKey();
-  const day = seasonDayIndex(today);
-  const product = getProduct(SEASON.productId);
+  const season = seasonFor(today);
+  const day = season.day;
+  const premium = save.seasonId === season.id && save.seasonPremium;
+  const freeClaimed = save.seasonId === season.id ? save.seasonFreeClaimed : [];
+  const premiumClaimed = save.seasonId === season.id ? save.seasonPremiumClaimed : [];
+  const product = getProduct(season.productId);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [show, setShow] = useState(false);
@@ -50,15 +54,19 @@ export default function SeasonScreen() {
   return (
     <Screen padded={false} bottomInset back>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
-        <Display size={26}>{SEASON.name}</Display>
+        <Display size={26}>{season.name}</Display>
         <Muted>
-          Thirty days. A free track for everyone, and a premium track if you take the pass. Rewards are coins, plus the Gilded Season style on the pass. Nothing here becomes cash.
+          A new 30-day season starts on the 1st of every month. The free track is open to everyone. The pass is for this month only, and its style stays in your collection after the month ends. Coins have no cash value.
         </Muted>
         <Card style={{ marginTop: 12 }}>
-          <Text style={[styles.kicker, { color: theme.colors.gold }]}>{day == null ? 'BETWEEN SEASONS' : `DAY ${day} OF ${SEASON.days}`}</Text>
-          <Muted>{day == null ? `The next window starts on a date in the season list. This one opened ${SEASON.start}.` : 'Open days can be claimed in any order. Missed days stay open until the season ends.'}</Muted>
+          <Text style={[styles.kicker, { color: theme.colors.gold }]}>{day == null ? 'TRACK COMPLETE' : `DAY ${day} OF ${season.days}`}</Text>
+          <Muted>
+            {day == null
+              ? `The ${season.name} track is finished. The next season starts on the 1st.`
+              : 'Open days can be claimed in any order until this month’s track ends.'}
+          </Muted>
         </Card>
-        {product && !save.seasonPremium ? (
+        {product && !premium && !save.ownedOffers.includes(seasonPassKey(season.id)) ? (
           <Card style={{ marginTop: 12, borderColor: theme.colors.gold }}>
             <Text style={[styles.name, { color: theme.colors.text }]}>{product.title}</Text>
             <Muted>{product.description}</Muted>
@@ -68,8 +76,8 @@ export default function SeasonScreen() {
           </Card>
         ) : (
           <Card style={{ marginTop: 12 }}>
-            <Text style={[styles.name, { color: theme.colors.gold }]}>Premium track open</Text>
-            <Muted>Gilded Season is in your styles. Claim the premium column below.</Muted>
+          <Text style={[styles.name, { color: theme.colors.gold }]}>Premium track open</Text>
+          <Muted>{season.name} is in your styles, and it stays after this month. Claim the premium column below.</Muted>
           </Card>
         )}
         {message ? <Text style={[styles.message, { color: theme.colors.gold }]}>{message}</Text> : null}
@@ -78,16 +86,16 @@ export default function SeasonScreen() {
           <Text style={[styles.col, { color: theme.colors.muted }]}>Free</Text>
           <Text style={[styles.col, { color: theme.colors.muted }]}>Premium</Text>
         </View>
-        {Array.from({ length: SEASON.days }, (_, index) => index + 1).map((index) => {
+        {Array.from({ length: season.days }, (_, index) => index + 1).map((index) => {
           const open = day != null && index <= day;
-          const freeClaimed = save.seasonFreeClaimed.includes(index);
-          const premiumClaimed = save.seasonPremiumClaimed.includes(index);
+          const freeDone = freeClaimed.includes(index);
+          const premiumDone = premiumClaimed.includes(index);
           return (
             <View key={index} style={[styles.day, { borderColor: theme.colors.cardBorder }]}>
               <Text style={[styles.dayNum, { color: theme.colors.text }]}>{index}</Text>
               <View style={styles.cell}>
                 <Text style={[styles.amount, { color: theme.colors.gold }]}>{formatCoins(seasonReward(index, 'free'))}</Text>
-                {freeClaimed ? <Text style={[styles.state, { color: theme.colors.muted }]}>Claimed</Text> : open ? (
+                {freeDone ? <Text style={[styles.state, { color: theme.colors.muted }]}>Claimed</Text> : open ? (
                   <GhostButton label="Claim" onPress={() => claim('free', index)} />
                 ) : (
                   <Text style={[styles.state, { color: theme.colors.muted }]}>Later</Text>
@@ -95,10 +103,10 @@ export default function SeasonScreen() {
               </View>
               <View style={styles.cell}>
                 <Text style={[styles.amount, { color: theme.colors.accent2 }]}>{formatCoins(seasonReward(index, 'premium'))}</Text>
-                {premiumClaimed ? <Text style={[styles.state, { color: theme.colors.muted }]}>Claimed</Text> : open && save.seasonPremium ? (
+                {premiumDone ? <Text style={[styles.state, { color: theme.colors.muted }]}>Claimed</Text> : open && premium ? (
                   <GhostButton label="Claim" onPress={() => claim('premium', index)} />
                 ) : (
-                  <Text style={[styles.state, { color: theme.colors.muted }]}>{save.seasonPremium ? 'Later' : 'Pass'}</Text>
+                  <Text style={[styles.state, { color: theme.colors.muted }]}>{premium ? 'Later' : 'Pass'}</Text>
                 )}
               </View>
             </View>

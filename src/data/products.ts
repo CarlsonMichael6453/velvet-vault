@@ -169,13 +169,11 @@ export const OFFER_PRODUCTS: Product[] = [
     oneTime: true,
   },
   {
-    id: 'season.velvet',
+    id: 'season.pass',
     type: 'non_consumable',
-    title: 'Velvet Season',
-    description: 'The premium track for this 30-day season, and the Gilded Season style.',
+    title: 'Season pass',
+    description: 'This month’s premium track and its exclusive style. Buy it again next month. Styles you already own stay yours.',
     priceString: '$4.99',
-    styleId: 'gilded',
-    oneTime: true,
     seasonPass: true,
   },
   {

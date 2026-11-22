@@ -104,6 +104,8 @@ export type SaveState = {
   ownedOffers: string[];
   adDay: string | null;
   adClaims: number;
+  /** `YYYY-MM` the premium flag and claim lists belong to. */
+  seasonId: string | null;
   seasonPremium: boolean;
   seasonFreeClaimed: number[];
   seasonPremiumClaimed: number[];
