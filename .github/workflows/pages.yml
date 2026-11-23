@@ -28,8 +28,8 @@ jobs:
         run: npx expo export -p web
         env:
           EXPO_PAGES_BASE: /velvet-vault
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://cgpceuoqcevnrkekzujs.supabase.co' }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNncGNldW9xY2V2bnJrZWt6dWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0MDgxOTAsImV4cCI6MjExMDk4NDE5MH0.XfQlhmm9h21h0xWae83JUXRarnGN1wTb5fcd12fhu_Y' }}
       - name: SPA fallback for client routes
         run: |
           cp dist/index.html dist/404.html

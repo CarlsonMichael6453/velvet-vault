@@ -6,6 +6,7 @@ import { useGame } from '@/src/store/gameStore';
 import type { SaveState } from '@/src/store/types';
 
 const SESSION_KEY = 'velvet-vault-cloud-session';
+const EMAIL_REDIRECT_TO = 'https://carlsonmichael6453.github.io/velvet-vault/';
 
 export type CloudSession = {
   accessToken: string;
@@ -172,11 +173,14 @@ export const useCloud = create<CloudStore>((set, get) => ({
   },
   signUp: async (email, password) => {
     set({ status: 'saving', message: null });
-    const response = await fetch(`${supabaseUrl()}/auth/v1/signup`, {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({ email, password }),
-    });
+    const response = await fetch(
+      `${supabaseUrl()}/auth/v1/signup?redirect_to=${encodeURIComponent(EMAIL_REDIRECT_TO)}`,
+      {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ email, password }),
+      },
+    );
     const payload = (await response.json()) as AuthPayload;
     if (!response.ok) {
       set({ status: 'error', message: payload.msg || payload.error_description || payload.message || 'Could not create the account.' });
@@ -186,7 +190,7 @@ export const useCloud = create<CloudStore>((set, get) => ({
     if (!session) {
       set({
         status: 'signed-out',
-        message: 'Account created. Confirm the email if Supabase asked for it, then sign in. The vault stays on this device until then.',
+        message: 'Check your email to confirm this account, then come back and sign in. The vault stays on this device until then.',
       });
       return;
     }

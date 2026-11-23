@@ -55,7 +55,7 @@ export default function AccountScreen() {
         ) : (
           <Card style={{ marginTop: 14 }}>
             <Text style={[styles.title, { color: theme.colors.gold }]}>Sign in</Text>
-            <Muted>Email and a password. Apple and Google are planned, not wired yet.</Muted>
+            <Muted>Email and a password. After you create an account, check your email to confirm it, then sign in. Apple and Google are planned, not wired yet.</Muted>
             <Field label="Email" value={address} onChangeText={setAddress} placeholder="you@example.com" />
             <Field label="Password" value={password} onChangeText={setPassword} placeholder="At least 6 characters" secure />
             <View style={{ marginTop: 10, gap: 8 }}>
