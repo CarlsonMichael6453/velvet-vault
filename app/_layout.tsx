@@ -19,7 +19,7 @@ import { VaultMark } from '@/src/components/art';
 import { AgeGate } from '@/src/components/AgeGate';
 import { NoticeStack } from '@/src/components/ui';
 import { startCloudSync, useCloud } from '@/src/services/cloud';
-import { syncMusic } from '@/src/services/audio';
+import { startAudioLifecycle, syncMusic } from '@/src/services/audio';
 import { useGame } from '@/src/store/gameStore';
 import { getStyle } from '@/src/theme/styles';
 import { getTheme } from '@/src/theme/themes';
@@ -122,6 +122,7 @@ function AudioBridge() {
   const themeId = useGame((state) => state.save.activeTheme);
   const styleId = useGame((state) => state.save.activeStyle);
   const age = useGame((state) => state.save.ageConfirmed);
+  useEffect(() => startAudioLifecycle(), []);
   useEffect(() => {
     if (!age) return;
     const track = getStyle(styleId).music ?? getTheme(themeId).music;
