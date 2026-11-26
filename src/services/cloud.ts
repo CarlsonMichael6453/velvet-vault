@@ -34,17 +34,17 @@ type CloudStore = {
   syncNow: () => Promise<void>;
 };
 
-function env(name: string): string {
-  const value = process.env[name];
+function publicEnv(value: string | undefined): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
 export function supabaseUrl(): string {
-  return env('EXPO_PUBLIC_SUPABASE_URL').replace(/\/$/, '');
+  // Direct property access so Expo inlines the value in the Pages bundle.
+  return publicEnv(process.env.EXPO_PUBLIC_SUPABASE_URL).replace(/\/$/, '');
 }
 
 export function supabaseAnonKey(): string {
-  return env('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  return publicEnv(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
 }
 
 export function cloudConfigured(): boolean {
