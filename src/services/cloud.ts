@@ -29,6 +29,8 @@ type CloudStore = {
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Permanently deletes the signed-in account and its cloud save. The device vault is untouched. */
+  deleteAccount: () => Promise<{ ok: boolean; message: string }>;
   syncNow: () => Promise<void>;
 };
 
@@ -230,6 +232,33 @@ export const useCloud = create<CloudStore>((set, get) => ({
     await AsyncStorage.removeItem(SESSION_KEY);
     lastPushedAt = -1;
     set({ session: null, email: null, status: 'signed-out', message: 'Signed out. This device still has its copy.' });
+  },
+  deleteAccount: async () => {
+    let session = get().session;
+    if (!cloudConfigured() || !session) return { ok: false, message: 'Sign in first to delete an account.' };
+    set({ status: 'saving' });
+    try {
+      session = await refresh(session);
+      const response = await fetch(`${supabaseUrl()}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: headers(session.accessToken),
+        body: '{}',
+      });
+      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) {
+        const message = payload.error || `The account could not be deleted. The cloud answered ${response.status}.`;
+        set({ session, status: 'signed-in' });
+        return { ok: false, message };
+      }
+      await AsyncStorage.removeItem(SESSION_KEY);
+      lastPushedAt = -1;
+      const message = 'Your account and cloud save were deleted. This device still has its copy of the vault.';
+      set({ session: null, email: null, status: 'signed-out', message });
+      return { ok: true, message };
+    } catch (error) {
+      set({ status: 'signed-in' });
+      return { ok: false, message: error instanceof Error ? error.message : 'The account could not be deleted. Nothing was changed.' };
+    }
   },
   syncNow: async () => {
     let session = get().session;
